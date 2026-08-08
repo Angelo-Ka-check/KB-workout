@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>KB Workout Builder</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#0F0F0F;font-family:'DM Sans',sans-serif;color:#F2EBD9;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:#2A2A2A;border-radius:2px}
+input[type=range]{-webkit-appearance:none;width:100%;height:4px;border-radius:2px;background:#2A2A2A;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#E05C2A;cursor:pointer}
+input,select{background:#222;border:1px solid #2A2A2A;color:#F2EBD9;border-radius:8px;padding:.65rem .9rem;font-family:'DM Sans';font-size:.85rem;width:100%;outline:none;-webkit-appearance:none;appearance:none}
+input:focus,select:focus{border-color:#E05C2A}
+select option{background:#1A1A1A}
+.btn{cursor:pointer;border:none;font-family:'DM Sans';transition:all .15s}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulseRing{0%{transform:scale(1);opacity:.5}100%{transform:scale(1.6);opacity:0}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const C = {
+bg:"#0F0F0F",surface:"#1A1A1A",surface2:"#222",border:"#2A2A2A",
+ember:"#E05C2A",emberL:"#F4936A",emberD:"rgba(224,92,42,0.13)",
+sand:"#F2EBD9",mist:"#6B6B6B",white:"#FFFFFF",
+rest:"#3B82F6",restD:"rgba(59,130,246,0.13)",
+green:"#22C55E",greenD:"rgba(34,197,94,0.13)",
+purple:"#A855F7",warn:"#FFD166"
+};
+
+const EXERCISES = [
+{id:1,name:"Kettlebell Halo",cat:"Core & Mobilità",target:"Obliqui · Spalle · Mobilità toracica",yt:"https://www.youtube.com/watch?v=Sci3lijQBmk",cues:["Tieni il KB a due mani davanti al petto, fondo verso l'alto.","Ruota lentamente attorno alla testa (~3 sec/giro).","Il busto rimane fermo — si muovono solo spalle e braccia.","Alterna direzione ogni 20\"."]},
+{id:2,name:"Goblet Squat",cat:"Full Body",target:"Quadricipiti · Glutei · Core",yt:"https://www.youtube.com/watch?v=FcTOmJW0G6U",cues:["KB verticale a due mani all'altezza del petto.","Piedi oltre larghezza spalle, punte fuori.","Scendi con petto alto — gomiti toccano le ginocchia.","Spingi sui talloni per risalire."]},
+{id:3,name:"Around the World",cat:"Core & Mobilità",target:"Core 360° · Obliqui · Coordinazione",yt:"https://www.youtube.com/watch?v=XzqwVP_wSpc",cues:["KB in una mano davanti alle cosce.","Ruota il KB attorno al corpo, passa da una mano all'altra.","Busto fisso — le anche non ruotano.","Cambia direzione ogni 20\"."]},
+{id:4,name:"Single-Leg Deadlift",cat:"Posteriori",target:"Femorali · Glutei · Equilibrio",yt:"https://www.youtube.com/watch?v=IDtmRPFNBk8",cues:["In piedi su una gamba, KB nella mano opposta.","Inclinati in avanti dall'anca come un'altalena.","La gamba libera sale dietro, KB scende parallelo alla tibia.","Nessun movimento dalla lombare."]},
+{id:5,name:"Press in Piedi",cat:"Spalle & Upper",target:"Spalle · Core laterale · Stabilità",yt:"https://www.youtube.com/watch?v=0eW8av1WC4g",cues:["KB in rack sulla spalla, polso dritto.","Premi sopra la testa in linea con la spalla.","Contrai il gluteo del lato che preme.","Non inarcare la schiena."]},
+{id:6,name:"Suitcase Carry",cat:"Core & Mobilità",target:"Obliqui · Grip · Postura anti-laterale",yt:"https://www.youtube.com/watch?v=Uc5rP5xs7qQ",cues:["KB in una mano, braccio disteso lungo il fianco.","La spalla carica non deve abbassarsi.","Gli obliqui del lato opposto lavorano isometricamente.","Passo lento e controllato."]},
+{id:7,name:"Wood Chops",cat:"Core & Mobilità",target:"Obliqui · Rotatori · Potenza rotazionale",yt:"https://www.youtube.com/watch?v=V3XtAjWFLdU",cues:["KB a due mani, arco diagonale dall'alto-laterale al basso.","Ruota il busto, non solo le braccia.","Movimento esplosivo in discesa, controllato in risalita.","x6 per lato."]},
+{id:8,name:"High Pulls",cat:"Spalle & Upper",target:"Trapezi · Spalle · Schiena alta",yt:"https://www.youtube.com/watch?v=ITSmgn_BQgY",cues:["Parti con il KB basso tra le gambe.","Tira con i gomiti alti verso il petto in modo esplosivo.","Il KB sale fino al petto — coinvolgi schiena e spalle.","Nessuno slancio delle braccia."]},
+{id:9,name:"Curl & Press",cat:"Spalle & Upper",target:"Bicipiti → Spalle · Transizione fluida",yt:"https://www.youtube.com/watch?v=IkcOjDnHwyI",cues:["Esegui prima un curl portando il KB al petto.","Poi pressa sopra la testa fino a completa estensione.","Gomiti vicini al corpo durante il curl.","Movimento lento e controllato."]},
+{id:10,name:"Horizontal Press",cat:"Spalle & Upper",target:"Petto · Tricipiti · Core stabilizzatore",yt:"https://www.youtube.com/watch?v=EZWHnzAjctU",cues:["Spingi in avanti in linea orizzontale.","Non inarcare la schiena — core contratto.","Puoi eseguirlo da seduto o in ginocchio.","2 sec andata, 2 sec ritorno."]},
+{id:11,name:"Reverse Lunge",cat:"Gambe & Glutei",target:"Quadricipiti · Glutei · Equilibrio",yt:"https://www.youtube.com/watch?v=JiQboHyV9aE",cues:["Tieni il KB al petto o in una mano.","Fai un passo indietro ampio — ginocchio posteriore verso terra.","Il ginocchio anteriore non supera la punta del piede.","Spingi sul tallone della gamba davanti per tornare."]},
+{id:12,name:"Romanian Deadlift",cat:"Posteriori",target:"Femorali · Glutei · Schiena bassa controllata",yt:"https://www.youtube.com/watch?v=JCXUYuzwNrM",cues:["KB in entrambe le mani davanti alle cosce.","Inclina il busto spingendo i fianchi indietro.","Schiena neutra per tutta l'esecuzione.","Scendi fino allo stretch nei femorali, risali lentamente."]},
+{id:13,name:"Goblet Squat & Press",cat:"Full Body",target:"Gambe · Spalle · Core · Composto",yt:"https://www.youtube.com/watch?v=sIX71MwChNg",cues:["Parti in posizione goblet squat con il KB al petto.","Scendi in squat profondo con schiena neutra.","In risalita, pressa il KB sopra la testa a braccia tese.","Abbassa il KB al petto prima del prossimo squat."]},
+{id:14,name:"Dead Bug",cat:"Core & Mobilità",target:"Core profondo · Stabilità lombare · Coordinazione",yt:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cues:["Sdraiato sulla schiena, braccia verso il soffitto, ginocchia a 90°.","Abbassa il braccio destro e la gamba sinistra simultaneamente.","La schiena bassa rimane incollata al pavimento per tutta l'esecuzione.","Risali lentamente e alterna i lati. 20\" per lato."]},
+{id:15,name:"Bird Dog",cat:"Core & Mobilità",target:"Core · Stabilità lombopelvica · Coordinazione",yt:"https://www.youtube.com/watch?v=wiFNA3sqjCA",cues:["In quadrupedia, schiena neutra, core attivo.","Estendi il braccio destro e la gamba sinistra contemporaneamente.","Mantieni i fianchi paralleli al pavimento — non ruotare.","Tieni 2 sec, rientra lentamente. 20\" per lato."]},
+{id:16,name:"Side Plank",cat:"Core & Mobilità",target:"Obliqui · Core laterale · Stabilità",yt:"https://www.youtube.com/watch?v=K2KACpntMqo",cues:["Appoggio sul gomito o sulla mano, corpo in linea retta.","Fianchi sollevati, non cedere verso il basso.","Guarda in avanti, collo neutro.","20\" per lato."]},
+{id:17,name:"Plank KB Drag",cat:"Core & Mobilità",target:"Core · Anti-rotazione · Spalle",yt:"https://www.youtube.com/watch?v=_6PsqGi3KDg",cues:["In posizione plank alta, KB a lato della mano destra.","Con la mano sinistra trascina il KB dall'altro lato.","Evita qualsiasi rotazione del bacino durante il trascinamento.","Alterna i lati per tutta la durata."]},
+{id:18,name:"Suitcase March",cat:"Core & Mobilità",target:"Obliqui · Anti-inclinazione · Stabilità · Equilibrio",yt:"https://www.youtube.com/watch?v=8DeHFfBFMT4",cues:["KB in una mano, posizione eretta.","Solleva il ginocchio opposto fino all'altezza dell'anca, lentamente.","La spalla del lato carico non deve abbassarsi.","Passo lento e controllato. 20\" per lato."]},
+{id:19,name:"Seated KB Transfer",cat:"Core & Mobilità",target:"Obliqui · Core · Rotazione controllata",yt:"https://www.youtube.com/watch?v=6RlFpHFLcpQ",cues:["Seduto a terra, gambe divaricate, schiena dritta.","KB a lato del fianco destro.","Ruota il busto e sposta il KB davanti al corpo fino al lato sinistro.","Mantieni la schiena neutra — il movimento parte dal core."]},
+{id:20,name:"Lateral Lunge",cat:"Gambe & Glutei",target:"Adduttori · Glutei · Quadricipiti · Mobilità anche",yt:"https://www.youtube.com/watch?v=gwLzBJYoWlI",cues:["KB al petto a due mani, piedi uniti.","Fai un ampio passo laterale, piegando il ginocchio del lato che avanza.","La gamba opposta rimane tesa.","Spingi sul tallone per tornare. 20\" per lato."]},
+{id:21,name:"Split Squat",cat:"Gambe & Glutei",target:"Quadricipiti · Glutei · Stabilità · Forza unilaterale",yt:"https://www.youtube.com/watch?v=1vS1NQXF0Oc",cues:["Un piede avanti e uno indietro, in posizione di affondo.","KB in una mano o al petto.","Scendi verticalmente — il ginocchio posteriore verso il pavimento.","Mantieni il busto eretto per tutta l'esecuzione. 20\" per lato."]},
+{id:22,name:"Kettlebell Row",cat:"Spalle & Upper",target:"Dorsali · Romboidi · Bicipiti · Core",yt:"https://www.youtube.com/watch?v=6TSP1TRMUzs",cues:["Busto inclinato a ~45°, KB in una mano, braccio teso.","Tira il gomito verso il soffitto, KB verso il fianco.","La spalla del lato che lavora sale leggermente alla fine del movimento.","Abbassa lentamente. 20\" per lato."]},
+{id:23,name:"Glute Bridge",cat:"Posteriori",target:"Glutei · Femorali · Core · Stabilità bacino",yt:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cues:["Sdraiato sulla schiena, ginocchia piegate, piedi a terra.","KB appoggiato sui fianchi/basso addome.","Spingi i fianchi verso il soffitto contraendo i glutei.","In cima, tieni 1 sec. Scendi lentamente senza toccare terra."]},
+{id:24,name:"Russian Swing",cat:"Full Body",target:"Glutei · Femorali · Core · Esplosività",yt:"https://www.youtube.com/watch?v=sSESeQAir2M",cues:["Piedi oltre larghezza spalle, KB tra le gambe.","Il movimento parte dall'anca — non è uno squat.","Spingi i fianchi in avanti in modo esplosivo per lanciare il KB.","Il KB sale fino all'altezza delle spalle — non oltre."]},
+];
+
+const CIRCUITS = [
+{id:"A",name:"Routine A — Core & Upper Body",subtitle:"Stabilità, forza e rotazione",tag:"Dopo il padel · Giorni leggeri",color:C.purple,ids:[7,8,9,1,10,3],structure:"2–3 giri · 30-45\" riposo tra esercizi",focus:["Core","Spalle","Rotazione"]},
+{id:"B",name:"Routine B — Full Body",subtitle:"Forza, potenza e stabilità",tag:"Giorni senza padel",color:C.ember,ids:[24,1,13,12,11,6],structure:"2–3 giri · 45-60\" riposo tra esercizi",focus:["Forza totale","Gambe","Core"],note:"Fastidi schiena: sostituisci Russian Swing con Romanian Deadlift."},
+{id:"C",name:"Circuito Core & Waist",subtitle:"Core, addome, obliqui e stabilità lombare",tag:"Core · Definizione · Controllo del tronco",color:"#06B6D4",ids:[14,6,16,19,15,7,17,18,3,1],structure:"2 giri · 40\" lavoro · 20\" riposo · 60\" recupero tra giri",focus:["Core","Obliqui","Stabilità"],note:"Per esercizi unilaterali: 20\" per lato."},
+{id:"D",name:"Circuito Full Body",subtitle:"Forza, gambe, glutei e catena posteriore",tag:"Full Body · Padel · Forza generale",color:"#10B981",ids:[2,22,11,5,24,20,10,4,9,23],structure:"2 giri · 40\" lavoro · 20\" riposo · 60\" recupero tra giri",focus:["Forza","Gambe","Schiena"],note:"Per esercizi unilaterali: 20\" per lato."},
+];
+
+const CAT_ICONS = {"Core & Mobilità":"🌀","Full Body":"⚡","Posteriori":"🦵","Spalle & Upper":"💪","Gambe & Glutei":"🏋️"};
+const catIcon = c => CAT_ICONS[c] || "🔥";
+
+// SVG stick figures
+const SVG = {
+1:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="24" r="7" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="31" x2="40" y2="56" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="56" x2="30" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="56" x2="50" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="38" x2="22" y2="32" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="38" x2="58" y2="32" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="40" cy="20" rx="15" ry="6" fill="none" stroke="#E05C2A" stroke-width="2" stroke-dasharray="5 3"/></svg>`,
+2:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="18" r="7" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="25" x2="40" y2="48" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="48" x2="26" y2="62" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="26" y1="62" x2="22" y2="76" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="48" x2="54" y2="62" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="54" y1="62" x2="58" y2="76" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="34" x2="28" y2="40" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="34" x2="52" y2="40" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="30" y="38" width="20" height="11" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+3:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="20" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="26" x2="40" y2="54" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="54" x2="30" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="54" x2="50" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><ellipse cx="40" cy="40" rx="24" ry="14" fill="none" stroke="#E05C2A" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.8"/><rect x="60" y="36" width="11" height="8" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/><line x1="40" y1="36" x2="60" y2="40" stroke="#aaa" stroke-width="2" stroke-linecap="round"/></svg>`,
+4:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="26" cy="28" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="26" y1="34" x2="50" y2="46" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="38" y1="42" x2="38" y2="74" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="44" y1="44" x2="64" y2="34" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="36" x2="20" y2="54" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="13" y="52" width="13" height="9" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+5:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="20" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="26" x2="40" y2="56" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="56" x2="30" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="56" x2="50" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="36" x2="28" y2="44" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="36" x2="56" y2="10" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="51" y="4" width="12" height="8" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+6:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="36" cy="18" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="36" y1="24" x2="36" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="52" x2="26" y2="66" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="26" y1="66" x2="22" y2="76" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="52" x2="50" y2="60" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="50" y1="60" x2="54" y2="74" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="36" x2="56" y2="44" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="54" y="42" width="14" height="10" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+7:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="20" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="26" x2="40" y2="54" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="54" x2="28" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="54" x2="54" y2="68" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="36" x2="18" y2="20" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="10" y="12" width="12" height="9" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/><line x1="20" y1="22" x2="58" y2="58" stroke="#E05C2A" stroke-width="1.5" stroke-dasharray="5 3" opacity="0.7"/></svg>`,
+8:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="18" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="24" x2="40" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="52" x2="28" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="52" x2="52" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="32" x2="18" y2="26" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="18" y1="26" x2="28" y2="42" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="32" x2="62" y2="26" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="62" y1="26" x2="52" y2="42" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="30" y="40" width="20" height="11" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+9:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="18" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="24" x2="40" y2="54" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="54" x2="28" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="54" x2="52" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="34" x2="22" y2="40" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="22" y1="40" x2="24" y2="28" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="18" y="22" width="10" height="8" rx="1.5" fill="none" stroke="#E05C2A" stroke-width="2"/><line x1="40" y1="34" x2="56" y2="28" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="56" y1="28" x2="58" y2="10" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="53" y="4" width="10" height="8" rx="1.5" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+10:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="28" cy="22" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="28" y1="28" x2="28" y2="56" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="28" y1="56" x2="16" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="28" y1="56" x2="40" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="28" y1="38" x2="56" y2="36" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="54" y="30" width="14" height="10" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+11:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="38" cy="13" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="38" y1="19" x2="38" y2="46" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="38" y1="46" x2="38" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="38" y1="70" x2="26" y2="78" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="38" y1="46" x2="62" y2="56" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="62" y1="56" x2="64" y2="74" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="27" y="34" width="22" height="10" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+12:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="28" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="20" y1="34" x2="48" y2="48" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="34" y1="44" x2="34" y2="76" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="44" y1="48" x2="46" y2="76" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="26" y1="38" x2="18" y2="56" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="14" y="55" width="18" height="10" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+13:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="14" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="20" x2="40" y2="46" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="46" x2="26" y2="60" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="26" y1="60" x2="22" y2="76" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="46" x2="54" y2="60" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="54" y1="60" x2="58" y2="76" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="30" x2="58" y2="8" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="54" y="2" width="12" height="8" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+// Dead Bug (14) - sdraiato, braccia su, gamba distesa
+14:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="38" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="18" y1="38" x2="52" y2="38" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="38" x2="30" y2="28" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="28" x2="20" y2="16" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="28" x2="42" y2="16" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="38" x2="50" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="50" y1="52" x2="68" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="38" x2="52" y2="60" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="52" y1="60" x2="52" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="20" y1="16" x2="16" y2="6" stroke="#E05C2A" stroke-width="2" stroke-linecap="round"/></svg>`,
+// Bird Dog (15) - quadrupedia, braccio e gamba estesi
+15:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="20" cy="32" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="26" y1="32" x2="54" y2="36" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="32" y1="36" x2="28" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="28" y1="52" x2="22" y2="64" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="48" y1="36" x2="44" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="44" y1="52" x2="50" y2="64" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="26" y1="32" x2="8" y2="26" stroke="#E05C2A" stroke-width="2" stroke-linecap="round"/><line x1="54" y1="36" x2="72" y2="30" stroke="#E05C2A" stroke-width="2" stroke-linecap="round"/></svg>`,
+// Side Plank (16) - laterale su gomito
+16:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="28" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="18" y1="32" x2="62" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="40" x2="30" y2="28" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="28" x2="18" y2="22" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="62" y1="52" x2="68" y2="52" stroke="#aaa" stroke-width="2" stroke-linecap="round"/><line x1="36" y1="40" x2="40" y2="26" stroke="#E05C2A" stroke-width="2" stroke-linecap="round"/></svg>`,
+// Plank KB Drag (17) - plank alta, trascina KB
+17:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="22" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="20" y1="26" x2="56" y2="40" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="22" y1="28" x2="18" y2="46" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="18" y1="46" x2="14" y2="58" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="46" y1="38" x2="48" y2="56" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="48" y1="56" x2="58" y2="62" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="34" x2="36" y2="48" stroke="#aaa" stroke-width="2" stroke-linecap="round"/><rect x="50" y="44" width="16" height="10" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/><line x1="36" y1="48" x2="52" y2="48" stroke="#E05C2A" stroke-width="1.5" stroke-dasharray="4 2" opacity="0.8"/></svg>`,
+// Suitcase March (18) - in piedi, ginocchio alzato, KB a lato
+18:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="16" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="22" x2="40" y2="50" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="50" x2="30" y2="70" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="70" x2="26" y2="78" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="50" x2="52" y2="40" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="52" y1="40" x2="58" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="34" x2="58" y2="40" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="58" y="36" width="14" height="10" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+// Seated KB Transfer (19) - seduto, ruota con KB
+19:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="18" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="24" x2="40" y2="48" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="48" x2="22" y2="62" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="22" y1="62" x2="16" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="48" x2="58" y2="62" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="58" y1="62" x2="64" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="36" x2="58" y2="42" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="56" y="39" width="14" height="9" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/><path d="M30 36 Q40 30 50 36" fill="none" stroke="#E05C2A" stroke-width="1.5" stroke-dasharray="4 2" opacity="0.7"/></svg>`,
+// Lateral Lunge (20) - passo laterale
+20:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="30" cy="16" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="30" y1="22" x2="30" y2="44" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="44" x2="14" y2="62" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="14" y1="62" x2="10" y2="76" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="44" x2="56" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="56" y1="52" x2="66" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="32" x2="18" y2="38" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="32" x2="44" y2="36" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="36" y="32" width="14" height="9" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+// Split Squat (21) - affondo statico
+21:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="36" cy="14" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="36" y1="20" x2="36" y2="46" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="46" x2="20" y2="62" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="20" y1="62" x2="16" y2="76" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="46" x2="52" y2="56" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="52" y1="56" x2="52" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="30" x2="22" y2="38" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="30" x2="50" y2="34" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/></svg>`,
+// Kettlebell Row (22) - busto inclinato, tira il KB
+22:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="18" cy="26" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="22" y1="30" x2="52" y2="42" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="38" x2="32" y2="58" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="32" y1="58" x2="24" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="38" x2="48" y2="58" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="48" y1="58" x2="54" y2="72" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="26" y1="34" x2="22" y2="48" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="16" y="46" width="14" height="9" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/><line x1="22" y1="48" x2="26" y2="34" stroke="#E05C2A" stroke-width="1.5" stroke-dasharray="4 2" opacity="0.7"/></svg>`,
+// Glute Bridge (23) - sdraiato, fianchi sollevati
+23:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="10" cy="36" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="16" y1="36" x2="36" y2="36" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="36" y1="36" x2="50" y2="22" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="50" y1="22" x2="66" y2="34" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="66" y1="34" x2="70" y2="52" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="26" y1="36" x2="24" y2="50" stroke="#aaa" stroke-width="2" stroke-linecap="round"/><rect x="38" y="16" width="18" height="10" rx="2" fill="none" stroke="#E05C2A" stroke-width="2"/></svg>`,
+// Russian Swing (24) - swing esplosivo
+24:`<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg"><circle cx="40" cy="16" r="6" fill="none" stroke="#aaa" stroke-width="2.5"/><line x1="40" y1="22" x2="40" y2="48" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="48" x2="24" y2="66" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="66" x2="18" y2="78" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="48" x2="56" y2="66" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="56" y1="66" x2="62" y2="78" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="34" x2="22" y2="40" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><line x1="40" y1="34" x2="58" y2="40" stroke="#aaa" stroke-width="2.5" stroke-linecap="round"/><rect x="28" y="38" width="24" height="12" rx="3" fill="none" stroke="#E05C2A" stroke-width="2"/><path d="M36 36 Q40 20 44 36" fill="none" stroke="#E05C2A" stroke-width="1.5" stroke-dasharray="4 2" opacity="0.7"/></svg>`,
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let state = {
+tab: 'library',
+filterCat: 'Tutti',
+selected: [],
+modalEx: null,
+showAdd: false,
+customExs: JSON.parse(localStorage.getItem('kb_custom') || '[]'),
+// builder
+workTime: 40, restTime: 20, series: 3, restBetween: 90,
+musicUrl: '',
+audioFile: null, audioPlaying: false, audioVol: 0.7,
+// player
+workout: null, phase: null, running: false, done: false,
+// videos
+videos: JSON.parse(localStorage.getItem('kb_videos') || '[]'),
+showAddVideo: false,
+};
+
+// Overrides YouTube links e immagini salvati dall'utente
+let ytOverrides = JSON.parse(localStorage.getItem('kb_yt_overrides') || '{}');
+let imgOverrides = JSON.parse(localStorage.getItem('kb_img_overrides') || '{}');
+
+function saveYtOverrides() { localStorage.setItem('kb_yt_overrides', JSON.stringify(ytOverrides)); }
+function saveImgOverrides() { localStorage.setItem('kb_img_overrides', JSON.stringify(imgOverrides)); }
+function saveCustom() { localStorage.setItem('kb_custom', JSON.stringify(state.customExs)); }
+function saveVideos() { localStorage.setItem('kb_videos', JSON.stringify(state.videos)); }
+
+function getExYt(ex) {
+return ytOverrides[ex.id] !== undefined ? ytOverrides[ex.id] : (ex.yt || '');
+}
+function getExImgs(ex) {
+return imgOverrides[ex.id] || [];
+}
+function getExMainImg(ex) {
+const imgs = getExImgs(ex);
+return imgs.length > 0 ? imgs[0] : null;
+}
+
+function allExercises() { return [...EXERCISES, ...state.customExs]; }
+
+function fmt(s) {
+return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+
+// Comprimi immagine: max 400px, JPEG 0.65
+function compressImage(file, callback) {
+const reader = new FileReader();
+reader.onload = e => {
+const img = new Image();
+img.onload = () => {
+const MAX = 400;
+let w = img.width, h = img.height;
+if (w > h && w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+else if (h > w && h > MAX) { w = Math.round(w * MAX / h); h = MAX; }
+else if (w > MAX) { w = MAX; h = MAX; }
+const canvas = document.createElement('canvas');
+canvas.width = w; canvas.height = h;
+canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+callback(canvas.toDataURL('image/jpeg', 0.65));
+};
+img.src = e.target.result;
+};
+reader.readAsDataURL(file);
+}
+
+// ── AUDIO BIP ─────────────────────────────────────────────────────────────────
+function beep(freq=880, dur=0.15, vol=0.7) {
+try {
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+osc.connect(gain); gain.connect(ctx.destination);
+osc.frequency.value = freq;
+gain.gain.setValueAtTime(vol, ctx.currentTime);
+gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+osc.start(); osc.stop(ctx.currentTime + dur);
+} catch(e) {}
+}
+
+function beepLong(freq=660, dur=1.5, vol=0.8) {
+try {
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+const osc = ctx.createOscillator();
+const gain = ctx.createGain();
+osc.connect(gain); gain.connect(ctx.destination);
+osc.frequency.value = freq;
+gain.gain.setValueAtTime(vol, ctx.currentTime);
+gain.gain.setValueAtTime(vol, ctx.currentTime + dur - 0.2);
+gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+osc.start(); osc.stop(ctx.currentTime + dur);
+} catch(e) {}
+}
+
+// ── RENDER HELPERS ─────────────────────────────────────────────────────────────
+function el(tag, attrs, ...children) {
+const e = document.createElement(tag);
+if (attrs) {
+Object.entries(attrs).forEach(([k,v]) => {
+if (k === 'style' && typeof v === 'object') Object.assign(e.style, v);
+else if (k === 'onclick') e.onclick = v;
+else if (k === 'oninput') e.oninput = v;
+else if (k === 'onchange') e.onchange = v;
+else if (k === 'innerHTML') e.innerHTML = v;
+else if (k === 'href') e.href = v;
+else if (k === 'target') e.target = v;
+else if (k === 'type') e.type = v;
+else if (k === 'value') e.value = v;
+else if (k === 'min') e.min = v;
+else if (k === 'max') e.max = v;
+else if (k === 'step') e.step = v;
+else if (k === 'accept') e.accept = v;
+else if (k === 'placeholder') e.placeholder = v;
+else if (k === 'loop') e.loop = v;
+else if (k === 'disabled') e.disabled = v;
+else e.setAttribute(k, v);
+});
+}
+children.flat().forEach(c => {
+if (c == null) return;
+if (typeof c === 'string' || typeof c === 'number') e.appendChild(document.createTextNode(c));
+else e.appendChild(c);
+});
+return e;
+}
+
+function div(style, ...children) { return el('div', {style}, ...children); }
+function span(style, text) { const e = el('span', {style}); e.textContent = text; return e; }
+function btn(style, text, onclick) { return el('button', {style, onclick, class:'btn'}, text); }
+
+function svgThumb(ex, size=66) {
+const mainImg = getExMainImg(ex);
+const d = div({
+width: size+'px', height: size+'px', borderRadius: '8px',
+background: 'linear-gradient(135deg,#1A1A1A,#242424)',
+border: '1px solid #2A2A2A', overflow: 'hidden', flexShrink: '0',
+display: 'flex', alignItems: 'center', justifyContent: 'center', padding: mainImg ? '0' : '4px'
+});
+if (mainImg) {
+const img = el('img', {});
+img.src = mainImg;
+img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:7px';
+d.appendChild(img);
+} else if (SVG[ex.id]) {
+d.innerHTML = SVG[ex.id];
+} else {
+d.textContent = catIcon(ex.cat);
+}
+return d;
+}
+
+// ── GALLERIA IMMAGINI ─────────────────────────────────────────────────────────
+function renderImageGallery(ex) {
+const wrap = div({padding:'1rem 1.2rem', borderBottom:'1px solid #2A2A2A'});
+wrap.appendChild(div({fontSize:'.62rem',letterSpacing:'.1em',color:'#6B6B6B',textTransform:'uppercase',marginBottom:'.7rem'}, 'Immagini'));
+
+const imgs = getExImgs(ex);
+const gallery = div({display:'flex', gap:'.6rem', overflowX:'auto', paddingBottom:'.4rem'});
+gallery.style.scrollbarWidth = 'none';
+
+imgs.forEach((src, idx) => {
+const frame = div({position:'relative', flexShrink:'0'});
+const imgEl = el('img', {});
+imgEl.src = src;
+imgEl.style.cssText = `width:90px;height:90px;object-fit:cover;border-radius:10px;border:2px solid ${idx===0?'#E05C2A':'#2A2A2A'};display:block;`;
+imgEl.onclick = () => {
+// sposta questa immagine in posizione 0
+const newImgs = [src, ...imgs.filter((_,i)=>i!==idx)];
+imgOverrides[ex.id] = newImgs;
+saveImgOverrides();
+render();
+};
+frame.appendChild(imgEl);
+
+if (idx === 0) {
+const badge = div({position:'absolute',top:'3px',left:'3px',background:'#E05C2A',color:'#fff',fontSize:'.5rem',fontWeight:'700',padding:'.1rem .35rem',borderRadius:'2rem',letterSpacing:'.06em'}, '★');
+frame.appendChild(badge);
+}
+
+const delBtn = btn({position:'absolute',top:'3px',right:'3px',background:'rgba(0,0,0,.7)',border:'none',color:'#fff',width:'20px',height:'20px',borderRadius:'50%',fontSize:'.65rem',display:'flex',alignItems:'center',justifyContent:'center',padding:'0'}, '✕', () => {
+const newImgs = imgs.filter((_,i)=>i!==idx);
+if (newImgs.length === 0) delete imgOverrides[ex.id];
+else imgOverrides[ex.id] = newImgs;
+saveImgOverrides();
+render();
+});
+frame.appendChild(delBtn);
+gallery.appendChild(frame);
+});
+
+// Pulsante aggiungi (max 3)
+if (imgs.length < 3) {
+const addFrame = div({
+width:'90px', height:'90px', flexShrink:'0', borderRadius:'10px',
+border:'1px dashed #2A2A2A', display:'flex', flexDirection:'column',
+alignItems:'center', justifyContent:'center', gap:'.3rem', cursor:'pointer'
+});
+addFrame.appendChild(div({fontSize:'1.4rem'}, '📷'));
+addFrame.appendChild(div({fontSize:'.6rem', color:'#6B6B6B'}, 'Aggiungi'));
+
+const fileInput = el('input', {type:'file', accept:'image/*'});
+fileInput.style.display = 'none';
+fileInput.onchange = e => {
+const f = e.target.files && e.target.files[0];
+if (!f) return;
+compressImage(f, b64 => {
+const cur = getExImgs(ex);
+if (cur.length >= 3) return;
+imgOverrides[ex.id] = [...cur, b64];
+saveImgOverrides();
+render();
+});
+};
+addFrame.onclick = () => fileInput.click();
+addFrame.appendChild(fileInput);
+gallery.appendChild(addFrame);
+}
+
+wrap.appendChild(gallery);
+
+if (imgs.length > 0) {
+wrap.appendChild(div({fontSize:'.64rem',color:'#6B6B6B',marginTop:'.4rem'}, 'Tap su una foto per renderla principale. ★ = immagine attiva.'));
+}
+return wrap;
+}
+
+// ── MODAL ESERCIZIO ───────────────────────────────────────────────────────────
+function renderModal() {
+const ex = state.modalEx;
+if (!ex) return null;
+
+const overlay = div({
+position:'fixed', inset:'0', background:'rgba(0,0,0,0.88)', zIndex:'200',
+display:'flex', alignItems:'flex-end', animation:'fadeIn .18s ease'
+});
+overlay.onclick = () => { state.modalEx = null; render(); };
+
+const sheet = div({
+background: C.surface, width:'100%', maxWidth:'480px', margin:'0 auto',
+borderRadius:'16px 16px 0 0', overflow:'hidden', animation:'slideUp .22s ease',
+maxHeight:'92vh', overflowY:'auto'
+});
+sheet.onclick = e => e.stopPropagation();
+
+const mainImg = getExMainImg(ex);
+
+// Hero
+const hero = div({position:'relative', height:'200px', background:'linear-gradient(135deg,#1A1A1A,#2A2A2A)', display:'flex', alignItems:'center', justifyContent:'center', padding:'0 1rem 3rem', overflow:'hidden'});
+
+if (mainImg) {
+const imgEl = el('img', {});
+imgEl.src = mainImg;
+imgEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0.55';
+hero.appendChild(imgEl);
+} else if (SVG[ex.id]) {
+const s = div({width:'150px', height:'150px', opacity:'0.9', position:'relative', zIndex:'1'});
+s.innerHTML = SVG[ex.id];
+hero.appendChild(s);
+} else {
+hero.appendChild(div({fontSize:'4rem', textAlign:'center', position:'relative', zIndex:'1'}, catIcon(ex.cat)));
+}
+
+const grad = div({position:'absolute', inset:'0', background:'linear-gradient(to bottom,transparent 40%,rgba(26,26,26,0.97) 100%)', zIndex:'1'});
+hero.appendChild(grad);
+
+const closeBtn = btn({position:'absolute',top:'.8rem',right:'.8rem',background:'rgba(0,0,0,.55)',border:'none',color:C.white,width:'32px',height:'32px',borderRadius:'50%',fontSize:'1rem',zIndex:'3'}, '✕', () => { state.modalEx = null; render(); });
+hero.appendChild(closeBtn);
+
+if (ex.custom) {
+const badge = div({position:'absolute',top:'.8rem',left:'.8rem',background:C.green,color:C.white,fontSize:'.6rem',fontWeight:'700',letterSpacing:'.1em',textTransform:'uppercase',padding:'.2rem .55rem',borderRadius:'2rem',zIndex:'3'}, 'CUSTOM');
+hero.appendChild(badge);
+}
+
+const nameBlock = div({position:'absolute',bottom:'.8rem',left:'1rem',right:'1rem',zIndex:'2'});
+nameBlock.appendChild(div({fontSize:'.62rem',color:C.ember,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.2rem'}, ex.cat));
+nameBlock.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'1.9rem',color:C.white,lineHeight:'1'}, ex.name));
+if (ex.target) nameBlock.appendChild(div({fontSize:'.7rem',color:C.emberL,marginTop:'.2rem'}, ex.target));
+hero.appendChild(nameBlock);
+sheet.appendChild(hero);
+
+// Galleria immagini
+sheet.appendChild(renderImageGallery(ex));
+
+// Body
+const body = div({padding:'1.1rem 1.2rem 2rem'});
+
+if (ex.cues && ex.cues.length) {
+body.appendChild(div({fontSize:'.62rem',letterSpacing:'.12em',color:C.mist,textTransform:'uppercase',marginBottom:'.7rem'}, 'Tecnica'));
+ex.cues.forEach((cue, i) => {
+const row = div({display:'flex',gap:'.7rem',padding:'.5rem 0',borderBottom: i < ex.cues.length-1 ? '1px solid '+C.border : 'none'});
+row.appendChild(div({color:C.ember,fontFamily:"'Bebas Neue'",fontSize:'1rem',minWidth:'1.2rem',lineHeight:'1.4'}, String(i+1)));
+row.appendChild(div({fontSize:'.82rem',color:C.sand,lineHeight:'1.55'}, cue));
+body.appendChild(row);
+});
+}
+
+// YouTube section
+const currentYt = getExYt(ex);
+const ytSection = div({marginTop:'1rem'});
+
+if (currentYt) {
+const ytLink = el('a', {
+href: currentYt, target:'_blank',
+style: {display:'flex',alignItems:'center',gap:'.7rem',padding:'.75rem .9rem',borderRadius:'10px',background:'rgba(255,0,0,0.08)',border:'1px solid rgba(255,0,0,0.25)',textDecoration:'none',marginBottom:'.5rem'}
+});
+ytLink.appendChild(div({fontSize:'1.4rem'}, '▶️'));
+const ytText = div({flex:'1'});
+ytText.appendChild(div({fontSize:'.82rem',color:'#FF4444',fontWeight:'600'}, 'Guarda su YouTube'));
+ytText.appendChild(div({fontSize:'.66rem',color:C.mist,marginTop:'.1rem'}, 'Tutorial tecnica — si apre nel browser'));
+ytLink.appendChild(ytText);
+ytLink.appendChild(div({color:C.mist,fontSize:'.9rem'}, '↗'));
+ytSection.appendChild(ytLink);
+
+// Modifica / rimuovi link
+const editYtRow = div({display:'flex',gap:'.5rem'});
+editYtRow.appendChild(btn({flex:'1',padding:'.5rem',borderRadius:'8px',background:'none',border:'1px solid '+C.border,color:C.mist,fontSize:'.72rem'}, '✏️ Cambia link', () => {
+showYtEditor(ex, ytSection, currentYt);
+}));
+editYtRow.appendChild(btn({padding:'.5rem .75rem',borderRadius:'8px',background:'none',border:'1px solid rgba(239,68,68,.3)',color:'#EF4444',fontSize:'.72rem'}, '✕ Rimuovi', () => {
+ytOverrides[ex.id] = '';
+saveYtOverrides();
+render();
+}));
+ytSection.appendChild(editYtRow);
+} else {
+// Nessun link
+const noYt = div({padding:'.65rem .9rem',borderRadius:'10px',border:'1px dashed '+C.border,display:'flex',flexDirection:'column',gap:'.5rem'});
+noYt.appendChild(div({fontSize:'.78rem',color:C.mist}, 'Nessun link YouTube impostato.'));
+const addYtBtn = btn({padding:'.5rem .9rem',borderRadius:'8px',background:C.emberD,border:'1px solid rgba(224,92,42,.27)',color:C.ember,fontSize:'.78rem',alignSelf:'flex-start'}, '+ Aggiungi link YouTube', () => {
+showYtEditor(ex, ytSection, '');
+});
+noYt.appendChild(addYtBtn);
+ytSection.appendChild(noYt);
+}
+
+body.appendChild(ytSection);
+
+// Delete if custom
+if (ex.custom) {
+const delBtn = btn({marginTop:'1.2rem',width:'100%',padding:'.75rem',borderRadius:'10px',background:'rgba(239,68,68,.12)',border:'1px solid rgba(239,68,68,.3)',color:'#EF4444',fontSize:'.82rem'}, '🗑 Elimina esercizio', () => {
+state.customExs = state.customExs.filter(e => e.id !== ex.id);
+state.selected = state.selected.filter(e => e.id !== ex.id);
+saveCustom();
+state.modalEx = null;
+render();
+});
+body.appendChild(delBtn);
+}
+
+sheet.appendChild(body);
+overlay.appendChild(sheet);
+return overlay;
+}
+
+function showYtEditor(ex, container, currentVal) {
+container.innerHTML = '';
+const editorWrap = div({padding:'.6rem .9rem',background:'rgba(224,92,42,.08)',borderRadius:'10px',border:'1px solid rgba(224,92,42,.2)'});
+editorWrap.appendChild(div({fontSize:'.7rem',color:C.ember,marginBottom:'.5rem'}, 'Incolla il link YouTube:'));
+const inp = el('input', {type:'url', placeholder:'https://youtube.com/watch?v=...'});
+inp.value = currentVal;
+editorWrap.appendChild(inp);
+const row = div({display:'flex',gap:'.5rem',marginTop:'.6rem'});
+row.appendChild(btn({flex:'1',padding:'.55rem',borderRadius:'8px',background:'none',border:'1px solid '+C.border,color:C.mist,fontSize:'.78rem'}, 'Annulla', () => render()));
+row.appendChild(btn({flex:'1',padding:'.55rem',borderRadius:'8px',background:C.ember,border:'none',color:C.white,fontSize:'.78rem',fontWeight:'600'}, 'Salva', () => {
+const val = inp.value.trim();
+ytOverrides[ex.id] = val;
+saveYtOverrides();
+render();
+}));
+editorWrap.appendChild(row);
+container.appendChild(editorWrap);
+}
+
+// ── ADD EXERCISE MODAL ────────────────────────────────────────────────────────
+function renderAddModal() {
+if (!state.showAdd) return null;
+const cats = [...new Set([...EXERCISES.map(e=>e.cat), ...state.customExs.map(e=>e.cat)])];
+let name='', cat=cats[0], customCat='', useCustomCat=false, ytUrl='', imgB64='';
+
+const overlay = div({position:'fixed',inset:'0',background:'rgba(0,0,0,.9)',zIndex:'300',display:'flex',alignItems:'flex-end',animation:'fadeIn .18s ease'});
+overlay.onclick = () => { state.showAdd = false; render(); };
+
+const sheet = div({background:C.surface,width:'100%',maxWidth:'480px',margin:'0 auto',borderRadius:'16px 16px 0 0',animation:'slideUp .22s ease',maxHeight:'92vh',overflowY:'auto'});
+sheet.onclick = e => e.stopPropagation();
+
+const header = div({display:'flex',alignItems:'center',justifyContent:'space-between',padding:'1rem 1.2rem',borderBottom:'1px solid '+C.border});
+header.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'1.4rem',color:C.white,letterSpacing:'.04em'}, 'Nuovo Esercizio'));
+header.appendChild(btn({background:'none',border:'none',color:C.mist,fontSize:'1.1rem'}, '✕', () => { state.showAdd = false; render(); }));
+sheet.appendChild(header);
+
+const body = div({padding:'1.2rem'});
+
+// Nome
+body.appendChild(div({fontSize:'.68rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.4rem'}, 'Nome esercizio *'));
+const nameInput = el('input', {type:'text', placeholder:'es. Turkish Get-Up'});
+nameInput.oninput = e => { name = e.target.value; checkSave(); };
+body.appendChild(nameInput);
+body.appendChild(div({height:'.9rem'}));
+
+// Categoria
+body.appendChild(div({fontSize:'.68rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.4rem'}, 'Categoria *'));
+const catRow = div({display:'flex',gap:'.5rem',marginBottom:'.9rem'});
+const catSel = el('select');
+cats.forEach(c => { catSel.appendChild(el('option',{value:c},c)); });
+catSel.onchange = e => { cat = e.target.value; };
+catRow.appendChild(catSel);
+const newCatBtn = btn({padding:'.65rem .8rem',borderRadius:'8px',background:'none',border:'1px solid '+C.border,color:C.mist,fontSize:'.75rem',whiteSpace:'nowrap'}, '+ Nuova', () => {
+useCustomCat = true; catRow.innerHTML = '';
+const ci = el('input',{type:'text',placeholder:'Nome categoria...'});
+ci.oninput = e => { customCat = e.target.value; checkSave(); };
+catRow.appendChild(ci);
+const ab = btn({padding:'.65rem .8rem',borderRadius:'8px',background:'none',border:'1px solid '+C.border,color:C.mist,fontSize:'.75rem'}, '✕', () => { useCustomCat=false; customCat=''; catRow.innerHTML=''; catRow.appendChild(catSel); catRow.appendChild(newCatBtn); });
+catRow.appendChild(ab);
+});
+catRow.appendChild(newCatBtn);
+body.appendChild(catRow);
+
+// Immagine
+body.appendChild(div({fontSize:'.68rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.4rem'}, 'Immagine (opzionale)'));
+const imgPreviewWrap = div({marginBottom:'.9rem'});
+const imgLabel = el('label',{style:{display:'flex',alignItems:'center',gap:'.7rem',padding:'.7rem .9rem',borderRadius:'8px',border:'1px dashed '+C.border,cursor:'pointer',background:C.surface2}});
+const imgIcon = div({fontSize:'1.4rem'}, '📷');
+const imgTxt = div({});
+imgTxt.appendChild(div({fontSize:'.8rem',color:C.sand,fontWeight:'600'}, 'Scegli dalla galleria'));
+imgTxt.appendChild(div({fontSize:'.65rem',color:C.mist,marginTop:'.1rem'}, 'Compressione automatica · max 400px'));
+imgLabel.appendChild(imgIcon);
+imgLabel.appendChild(imgTxt);
+const imgInput = el('input',{type:'file',accept:'image/*'});
+imgInput.style.display = 'none';
+imgInput.onchange = e => {
+const f = e.target.files && e.target.files[0];
+if (!f) return;
+compressImage(f, b64 => {
+imgB64 = b64;
+imgPreviewWrap.innerHTML = '';
+const prev = el('img',{});
+prev.src = b64;
+prev.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #E05C2A;display:block;margin-bottom:.5rem';
+imgPreviewWrap.appendChild(prev);
+imgPreviewWrap.appendChild(imgLabel);
+});
+};
+imgLabel.appendChild(imgInput);
+imgPreviewWrap.appendChild(imgLabel);
+body.appendChild(imgPreviewWrap);
+
+// YouTube
+body.appendChild(div({fontSize:'.68rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.4rem'}, 'Link YouTube (opzionale)'));
+const ytInput = el('input',{type:'url',placeholder:'https://youtube.com/watch?v=...'});
+ytInput.oninput = e => { ytUrl = e.target.value; };
+body.appendChild(ytInput);
+body.appendChild(div({fontSize:'.66rem',color:C.mist,marginTop:'.3rem',marginBottom:'.9rem'}, "Cerca su YouTube, copia l'URL dalla barra."));
+
+// Buttons
+const btnRow = div({display:'flex',gap:'.7rem',marginTop:'1rem'});
+btnRow.appendChild(btn({flex:'1',padding:'.9rem',borderRadius:'10px',background:'none',border:'1px solid '+C.border,color:C.mist,fontSize:'.85rem'}, 'Annulla', () => { state.showAdd=false; render(); }));
+const saveBtn = btn({flex:'2',padding:'.9rem',borderRadius:'10px',background:C.border,border:'none',color:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.15rem',letterSpacing:'.06em'}, 'SALVA', () => {
+const finalCat = useCustomCat ? customCat.trim() : cat;
+if (name.trim().length < 2 || !finalCat) return;
+const newId = 'c_'+Date.now();
+state.customExs.push({id:newId,name:name.trim(),cat:finalCat,target:'',cues:[],yt:ytUrl.trim(),custom:true});
+if (imgB64) { imgOverrides[newId] = [imgB64]; saveImgOverrides(); }
+saveCustom();
+state.showAdd = false;
+render();
+});
+function checkSave() {
+const finalCat = useCustomCat ? customCat.trim() : cat;
+const ok = name.trim().length >= 2 && finalCat.length > 0;
+saveBtn.style.background = ok ? C.green : C.border;
+saveBtn.style.cursor = ok ? 'pointer' : 'not-allowed';
+}
+btnRow.appendChild(saveBtn);
+body.appendChild(btnRow);
+sheet.appendChild(body);
+overlay.appendChild(sheet);
+return overlay;
+}
+
+// ── ADD VIDEO MODAL ────────────────────────────────────────────────────────────
+function renderAddVideoModal() {
+if (!state.showAddVideo) return null;
+let titleVal='', urlVal='', editingId=state.editingVideoId||null;
+
+// Se stiamo modificando, precompila
+const existing = editingId ? state.videos.find(v=>v.id===editingId) : null;
+if (existing) { titleVal=existing.title; urlVal=existing.url; }
+
+const overlay = div({position:'fixed',inset:'0',background:'rgba(0,0,0,.9)',zIndex:'300',display:'flex',alignItems:'flex-end',animation:'fadeIn .18s ease'});
+overlay.onclick = () => { state.showAddVideo=false; state.editingVideoId=null; render(); };
+
+const sheet = div({background:C.surface,width:'100%',maxWidth:'480px',margin:'0 auto',borderRadius:'16px 16px 0 0',animation:'slideUp .22s ease',padding:'0 0 2rem'});
+sheet.onclick = e => e.stopPropagation();
+
+const header = div({display:'flex',alignItems:'center',justifyContent:'space-between',padding:'1rem 1.2rem',borderBottom:'1px solid '+C.border});
+header.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'1.3rem',color:C.white}, editingId ? 'Modifica Video' : 'Aggiungi Video'));
+header.appendChild(btn({background:'none',border:'none',color:C.mist,fontSize:'1.1rem'}, '✕', () => { state.showAddVideo=false; state.editingVideoId=null; render(); }));
+sheet.appendChild(header);
+
+const body = div({padding:'1.2rem'});
+
+body.appendChild(div({fontSize:'.68rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.4rem'}, 'Titolo *'));
+const tInp = el('input',{type:'text',placeholder:'es. Allenamento Core 20 min'});
+tInp.value = titleVal;
+tInp.oninput = e => { titleVal=e.target.value; checkOk(); };
+body.appendChild(tInp);
+body.appendChild(div({height:'.9rem'}));
+
+body.appendChild(div({fontSize:'.68rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.4rem'}, 'Link YouTube *'));
+const uInp = el('input',{type:'url',placeholder:'https://youtube.com/watch?v=...'});
+uInp.value = urlVal;
+uInp.oninput = e => { urlVal=e.target.value; checkOk(); };
+body.appendChild(uInp);
+body.appendChild(div({fontSize:'.66rem',color:C.mist,marginTop:'.3rem',marginBottom:'1rem'}, 'Il video si aprirà nell\'app YouTube.'));
+
+const btnRow = div({display:'flex',gap:'.7rem'});
+btnRow.appendChild(btn({flex:'1',padding:'.9rem',borderRadius:'10px',background:'none',border:'1px solid '+C.border,color:C.mist,fontSize:'.85rem'}, 'Annulla', () => { state.showAddVideo=false; state.editingVideoId=null; render(); }));
+const okBtn = btn({flex:'2',padding:'.9rem',borderRadius:'10px',background:C.border,border:'none',color:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.15rem',letterSpacing:'.06em'}, 'SALVA', () => {
+if (!titleVal.trim() || !urlVal.trim()) return;
+if (editingId) {
+const idx = state.videos.findIndex(v=>v.id===editingId);
+if (idx>=0) state.videos[idx]={id:editingId,title:titleVal.trim(),url:urlVal.trim()};
+} else {
+state.videos.push({id:'v_'+Date.now(),title:titleVal.trim(),url:urlVal.trim()});
+}
+saveVideos();
+state.showAddVideo=false; state.editingVideoId=null; render();
+});
+function checkOk() {
+const ok = titleVal.trim().length>0 && urlVal.trim().length>0;
+okBtn.style.background = ok ? C.ember : C.border;
+okBtn.style.cursor = ok ? 'pointer' : 'not-allowed';
+}
+if (existing) { okBtn.style.background=C.ember; okBtn.style.cursor='pointer'; }
+btnRow.appendChild(okBtn);
+body.appendChild(btnRow);
+sheet.appendChild(body);
+overlay.appendChild(sheet);
+return overlay;
+}
+
+// ── LIBRARY TAB ───────────────────────────────────────────────────────────────
+function renderLibrary() {
+const wrap = div({flex:'1',padding:'1.1rem 1rem',overflowY:'auto'});
+const titleRow = div({display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:'.15rem'});
+const title = div({fontFamily:"'Bebas Neue'",fontSize:'1.8rem',color:C.white,letterSpacing:'.04em'});
+title.innerHTML = 'Libreria <span style="color:#E05C2A">Esercizi</span>';
+titleRow.appendChild(title);
+titleRow.appendChild(btn({padding:'.45rem .9rem',borderRadius:'8px',background:C.greenD,border:'1px solid rgba(34,197,94,0.27)',color:C.green,fontSize:'.75rem',fontWeight:'600'}, '+ Aggiungi', () => { state.showAdd=true; render(); }));
+wrap.appendChild(titleRow);
+wrap.appendChild(div({fontSize:'.74rem',color:C.mist,marginBottom:'1rem'}, 'Tap figura/nome → tecnica. Cerchio ✓ → aggiungi al workout.'));
+
+const allCats = [...new Set(allExercises().map(e=>e.cat))];
+const opts = ['Tutti','Custom',...allCats];
+const pills = div({display:'flex',gap:'.4rem',overflowX:'auto',paddingBottom:'.8rem',marginBottom:'.8rem'});
+pills.style.scrollbarWidth = 'none';
+opts.forEach(cat => {
+const active = state.filterCat === cat;
+const col = cat==='Custom' ? C.green : C.ember;
+const colD = cat==='Custom' ? C.greenD : C.emberD;
+pills.appendChild(btn({padding:'.28rem .72rem',borderRadius:'2rem',border:'1px solid '+(active?col:C.border),background:active?colD:'none',color:active?col:C.mist,fontSize:'.7rem',whiteSpace:'nowrap'}, cat, () => { state.filterCat=cat; render(); }));
+});
+wrap.appendChild(pills);
+
+const list = div({display:'flex',flexDirection:'column',gap:'.65rem'});
+const exs = allExercises().filter(e => {
+if (state.filterCat==='Tutti') return true;
+if (state.filterCat==='Custom') return e.custom;
+return e.cat === state.filterCat;
+});
+
+if (exs.length === 0) {
+const empty = div({textAlign:'center',padding:'2rem',color:C.mist,fontSize:'.82rem'});
+empty.innerHTML = state.filterCat==='Custom' ? '🏋️<br><br>Nessun esercizio custom.' : 'Nessun esercizio trovato.';
+list.appendChild(empty);
+} else {
+exs.forEach(ex => list.appendChild(exCard(ex)));
+}
+wrap.appendChild(list);
+
+if (state.selected.length > 0) {
+wrap.appendChild(btn({marginTop:'1.2rem',width:'100%',padding:'1rem',borderRadius:'12px',background:C.ember,border:'none',color:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.2rem',letterSpacing:'.06em'}, `Configura Workout → ${state.selected.length} esercizi`, () => { state.tab='builder'; render(); }));
+}
+return wrap;
+}
+
+function exCard(ex) {
+const isSel = state.selected.some(e=>e.id===ex.id);
+const card = div({border:'1px solid '+(isSel?C.ember:C.border),borderRadius:'12px',overflow:'hidden',background:isSel?C.emberD:C.surface,transition:'all .15s'});
+const inner = div({display:'flex',gap:'.85rem',padding:'.8rem'});
+
+const thumb = svgThumb(ex, 66);
+thumb.style.cursor = 'pointer';
+thumb.onclick = () => { state.modalEx=ex; render(); };
+inner.appendChild(thumb);
+
+const info = div({flex:'1',minWidth:'0'});
+const topRow = div({display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'.4rem'});
+const nameBtn = btn({background:'none',border:'none',padding:'0',fontWeight:'600',fontSize:'.88rem',color:C.white,textAlign:'left',textDecoration:'underline',textDecorationColor:'rgba(255,255,255,.2)',cursor:'pointer'}, ex.name, () => { state.modalEx=ex; render(); });
+const catRowEl = div({display:'flex',alignItems:'center',gap:'.4rem',marginTop:'.15rem'});
+catRowEl.appendChild(div({fontSize:'.65rem',color:C.ember,letterSpacing:'.07em',textTransform:'uppercase'}, ex.cat));
+if (ex.custom) catRowEl.appendChild(div({fontSize:'.58rem',background:C.greenD,color:C.green,padding:'.05rem .4rem',borderRadius:'2rem',textTransform:'uppercase'}, 'custom'));
+
+const nameWrap = div({flex:'1',minWidth:'0'});
+nameWrap.appendChild(nameBtn);
+nameWrap.appendChild(catRowEl);
+if (ex.target) nameWrap.appendChild(div({fontSize:'.71rem',color:C.mist,marginTop:'.1rem',lineHeight:'1.35'}, ex.target));
+topRow.appendChild(nameWrap);
+
+const check = div({width:'26px',height:'26px',borderRadius:'50%',flexShrink:'0',cursor:'pointer',border:'2px solid '+(isSel?C.ember:C.border),background:isSel?C.ember:'none',display:'flex',alignItems:'center',justifyContent:'center',color:C.white,fontSize:'.72rem',transition:'all .15s'}, isSel?'✓':'');
+check.onclick = () => {
+if (isSel) state.selected = state.selected.filter(e=>e.id!==ex.id);
+else state.selected.push(ex);
+render();
+};
+topRow.appendChild(check);
+info.appendChild(topRow);
+inner.appendChild(info);
+card.appendChild(inner);
+return card;
+}
+
+// ── CIRCUITS TAB ──────────────────────────────────────────────────────────────
+function renderCircuits() {
+const wrap = div({flex:'1',padding:'1.1rem 1rem',overflowY:'auto'});
+const title = div({fontFamily:"'Bebas Neue'",fontSize:'1.8rem',color:C.white,letterSpacing:'.04em',marginBottom:'.15rem'});
+title.innerHTML = 'Circuiti <span style="color:#E05C2A">Pronti</span>';
+wrap.appendChild(title);
+wrap.appendChild(div({fontSize:'.74rem',color:C.mist,marginBottom:'1.2rem'}, 'Tap su un esercizio per la tecnica. Carica nel builder per personalizzare.'));
+
+CIRCUITS.forEach(circuit => {
+const card = div({background:C.surface,border:'1px solid '+circuit.color+'33',borderRadius:'14px',overflow:'hidden',marginBottom:'1.2rem'});
+
+const head = div({background:circuit.color+'15',padding:'1rem 1.1rem .8rem',borderBottom:'1px solid '+circuit.color+'22'});
+const headTop = div({display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'.5rem'});
+const headLeft = div({});
+headLeft.appendChild(div({fontSize:'.62rem',color:circuit.color,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.2rem'}, circuit.tag));
+headLeft.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'1.35rem',color:C.white,lineHeight:'1.1'}, circuit.name));
+headLeft.appendChild(div({fontSize:'.72rem',color:C.mist,marginTop:'.2rem'}, circuit.subtitle));
+headTop.appendChild(headLeft);
+const badge = div({background:circuit.color,color:C.white,borderRadius:'50%',width:'34px',height:'34px',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Bebas Neue'",fontSize:'1.2rem',flexShrink:'0'}, circuit.id);
+headTop.appendChild(badge);
+head.appendChild(headTop);
+const tags = div({display:'flex',gap:'.4rem',flexWrap:'wrap',marginTop:'.6rem'});
+circuit.focus.forEach(f => tags.appendChild(div({fontSize:'.62rem',padding:'.18rem .5rem',borderRadius:'2rem',background:circuit.color+'22',color:circuit.color}, f)));
+head.appendChild(tags);
+card.appendChild(head);
+
+const exList = div({padding:'.7rem 1.1rem'});
+exList.appendChild(div({fontSize:'.6rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.45rem'}, 'Esercizi'));
+const exs = circuit.ids.map(id=>allExercises().find(e=>e.id===id)).filter(Boolean);
+exs.forEach((ex,i) => {
+const row = div({display:'flex',alignItems:'center',gap:'.65rem',padding:'.42rem 0',borderBottom:i<exs.length-1?'1px solid '+C.border:'none'});
+const thumb = svgThumb(ex, 40);
+thumb.style.cursor = 'pointer'; thumb.style.borderRadius = '7px';
+thumb.onclick = () => { state.modalEx=ex; render(); };
+row.appendChild(thumb);
+const info = div({flex:'1'});
+info.appendChild(btn({background:'none',border:'none',padding:'0',fontSize:'.82rem',color:C.white,fontWeight:'500',textDecoration:'underline',textDecorationColor:'rgba(255,255,255,.2)',cursor:'pointer',textAlign:'left'}, ex.name, () => { state.modalEx=ex; render(); }));
+if(ex.target) info.appendChild(div({fontSize:'.66rem',color:C.mist}, ex.target));
+row.appendChild(info);
+row.appendChild(div({fontSize:'.63rem',color:circuit.color,fontWeight:'600'}, '#'+(i+1)));
+exList.appendChild(row);
+});
+card.appendChild(exList);
+
+const struct = div({padding:'.55rem 1.1rem',borderTop:'1px solid '+C.border});
+struct.appendChild(div({fontSize:'.7rem',color:C.mist}, '📋 '+circuit.structure));
+if (circuit.note) struct.appendChild(div({fontSize:'.68rem',color:C.warn,fontStyle:'italic',marginTop:'.25rem'}, '⚠️ '+circuit.note));
+card.appendChild(struct);
+
+const loadWrap = div({padding:'0 1.1rem 1rem'});
+loadWrap.appendChild(btn({width:'100%',padding:'.82rem',borderRadius:'10px',background:circuit.color,border:'none',color:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.1rem',letterSpacing:'.06em'}, 'Carica nel Builder →', () => {
+state.selected = circuit.ids.map(id=>allExercises().find(e=>e.id===id)).filter(Boolean);
+state.tab='builder'; render();
+}));
+card.appendChild(loadWrap);
+wrap.appendChild(card);
+});
+return wrap;
+}
+
+// ── BUILDER TAB ───────────────────────────────────────────────────────────────
+function renderBuilder() {
+const wrap = div({flex:'1',padding:'1.1rem 1rem',overflowY:'auto'});
+const title = div({fontFamily:"'Bebas Neue'",fontSize:'1.8rem',color:C.white,letterSpacing:'.04em',marginBottom:'.15rem'});
+title.innerHTML = 'Configura <span style="color:#E05C2A">Workout</span>';
+wrap.appendChild(title);
+wrap.appendChild(div({fontSize:'.74rem',color:C.mist,marginBottom:'1rem'}, 'Imposta tempi e serie.'));
+
+const selBox = div({background:C.surface,border:'1px solid '+C.border,borderRadius:'12px',padding:'.9rem',marginBottom:'.85rem'});
+selBox.appendChild(div({fontSize:'.63rem',letterSpacing:'.12em',color:C.mist,textTransform:'uppercase',marginBottom:'.55rem'}, 'Ordine Circuito'));
+if (state.selected.length === 0) {
+selBox.appendChild(div({fontSize:'.8rem',color:C.mist,textAlign:'center',padding:'.6rem 0'}, 'Nessun esercizio selezionato'));
+} else {
+state.selected.forEach((ex,i) => {
+const row = div({display:'flex',alignItems:'center',gap:'.55rem',padding:'.4rem 0',borderBottom:i<state.selected.length-1?'1px solid '+C.border:'none'});
+row.appendChild(span({color:C.ember,fontFamily:"'Bebas Neue'",fontSize:'1rem',minWidth:'1.4rem'}, String(i+1)));
+row.appendChild(span({fontSize:'1rem'}, catIcon(ex.cat)));
+row.appendChild(btn({flex:'1',background:'none',border:'none',padding:'0',fontSize:'.83rem',color:C.sand,textAlign:'left',textDecoration:'underline',textDecorationColor:'rgba(242,235,217,.22)',cursor:'pointer'}, ex.name, () => { state.modalEx=ex; render(); }));
+if (ex.custom) row.appendChild(span({fontSize:'.58rem',color:C.green,border:'1px solid rgba(34,197,94,0.27)',padding:'.1rem .35rem',borderRadius:'2rem'}, 'custom'));
+row.appendChild(btn({background:'none',border:'none',color:C.mist,fontSize:'.9rem',cursor:'pointer'}, '✕', () => { state.selected=state.selected.filter(e=>e.id!==ex.id); render(); }));
+selBox.appendChild(row);
+});
+}
+selBox.appendChild(btn({marginTop:'.65rem',fontSize:'.73rem',color:C.ember,background:'none',border:'none',cursor:'pointer',padding:'0'}, '+ Aggiungi esercizi', () => { state.tab='library'; render(); }));
+wrap.appendChild(selBox);
+
+[
+{label:'Tempo lavoro',key:'workTime',min:15,max:90,step:5,unit:'"',color:C.ember},
+{label:'Riposo tra esercizi',key:'restTime',min:10,max:60,step:5,unit:'"',color:C.rest},
+{label:'Serie',key:'series',min:1,max:6,step:1,unit:'',color:C.green},
+{label:'Riposo tra serie',key:'restBetween',min:30,max:180,step:15,unit:'"',color:C.rest},
+].forEach(({label,key,min,max,step,unit,color}) => {
+const box = div({background:C.surface,border:'1px solid '+C.border,borderRadius:'12px',padding:'.85rem',marginBottom:'.65rem'});
+const top = div({display:'flex',justifyContent:'space-between',marginBottom:'.55rem'});
+top.appendChild(span({fontSize:'.8rem',color:C.sand}, label));
+const valSpan = span({fontFamily:"'Bebas Neue'",fontSize:'1.4rem',color,lineHeight:'1'}, state[key]+unit);
+top.appendChild(valSpan);
+box.appendChild(top);
+const slider = el('input',{type:'range',min,max,step,value:state[key]});
+slider.style.accentColor = color;
+slider.oninput = e => { state[key]=Number(e.target.value); valSpan.textContent=state[key]+unit; };
+box.appendChild(slider);
+const range = div({display:'flex',justifyContent:'space-between',marginTop:'.18rem'});
+range.appendChild(span({fontSize:'.6rem',color:C.mist}, min+unit));
+range.appendChild(span({fontSize:'.6rem',color:C.mist}, max+unit));
+box.appendChild(range);
+wrap.appendChild(box);
+});
+
+// Audio section
+const audioBox = div({background:C.surface,border:'1px solid '+C.border,borderRadius:'12px',padding:'.85rem',marginBottom:'.85rem'});
+audioBox.appendChild(div({fontSize:'.63rem',letterSpacing:'.12em',color:C.mist,textTransform:'uppercase',marginBottom:'.7rem'}, '🎵 Musica'));
+
+if (!state.audioFile) {
+const fileLabel = el('label',{style:{display:'flex',alignItems:'center',gap:'.7rem',padding:'.7rem .9rem',borderRadius:'8px',border:'1px dashed '+C.border,cursor:'pointer',background:C.surface2}});
+fileLabel.appendChild(span({fontSize:'1.4rem'}, '📂'));
+const txt = div({});
+txt.appendChild(div({fontSize:'.8rem',color:C.sand,fontWeight:'600'}, 'Carica file audio'));
+txt.appendChild(div({fontSize:'.65rem',color:C.mist,marginTop:'.1rem'}, 'MP3, AAC, M4A, WAV'));
+fileLabel.appendChild(txt);
+const fileInput = el('input',{type:'file',accept:'audio/*'});
+fileInput.style.display = 'none';
+fileInput.onchange = e => {
+const f = e.target.files && e.target.files[0];
+if (!f) return;
+if (state.audioFile && state.audioFile.url) URL.revokeObjectURL(state.audioFile.url);
+state.audioFile = {name:f.name, url:URL.createObjectURL(f)};
+state.audioPlaying = false; render();
+};
+fileLabel.appendChild(fileInput);
+audioBox.appendChild(fileLabel);
+} else {
+if (!audioEl) { audioEl = el('audio',{loop:true}); document.body.appendChild(audioEl); }
+if (audioEl.src !== state.audioFile.url) audioEl.src = state.audioFile.url;
+audioEl.volume = state.audioVol;
+const fileRow = div({display:'flex',alignItems:'center',gap:'.6rem',marginBottom:'.7rem'});
+fileRow.appendChild(span({fontSize:'1.1rem'}, '🎵'));
+fileRow.appendChild(div({flex:'1',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',fontSize:'.78rem',color:C.sand,fontWeight:'600'}, state.audioFile.name));
+fileRow.appendChild(btn({background:'none',border:'none',color:C.mist,cursor:'pointer',fontSize:'1rem',flexShrink:'0'}, '✕', () => {
+if (audioEl) { audioEl.pause(); audioEl.src=''; }
+if (state.audioFile && state.audioFile.url) URL.revokeObjectURL(state.audioFile.url);
+state.audioFile=null; state.audioPlaying=false; render();
+}));
+audioBox.appendChild(fileRow);
+const controls = div({display:'flex',alignItems:'center',gap:'.7rem'});
+const playBtn = btn({width:'36px',height:'36px',borderRadius:'50%',background:state.audioPlaying?C.emberD:C.ember,border:'1px solid '+C.ember,color:C.white,fontSize:'1rem',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:'0'}, state.audioPlaying?'⏸':'▶', () => {
+if (state.audioPlaying) { audioEl.pause(); state.audioPlaying=false; }
+else { audioEl.play().catch(()=>{}); state.audioPlaying=true; }
+render();
+});
+controls.appendChild(playBtn);
+const volRow = div({flex:'1',display:'flex',alignItems:'center',gap:'.5rem'});
+volRow.appendChild(span({fontSize:'.75rem'},'🔈'));
+const volSlider = el('input',{type:'range',min:'0',max:'1',step:'0.05',value:state.audioVol});
+volSlider.style.accentColor = C.ember;
+volSlider.oninput = e => { state.audioVol=Number(e.target.value); if(audioEl) audioEl.volume=state.audioVol; };
+volRow.appendChild(volSlider);
+volRow.appendChild(span({fontSize:'.75rem'},'🔊'));
+controls.appendChild(volRow);
+audioBox.appendChild(controls);
+}
+
+const extDiv = div({marginTop:'.8rem',paddingTop:'.7rem',borderTop:'1px solid '+C.border});
+extDiv.appendChild(div({fontSize:'.63rem',color:C.mist,marginBottom:'.4rem'}, 'Oppure apri link esterno (Spotify / YouTube)'));
+const urlRow = div({display:'flex',gap:'.5rem'});
+const urlInput = el('input',{type:'url',placeholder:'https://...'});
+urlInput.value = state.musicUrl;
+urlInput.oninput = e => { state.musicUrl = e.target.value; };
+urlRow.appendChild(urlInput);
+if (state.musicUrl) {
+urlRow.appendChild(btn({padding:'.65rem .8rem',borderRadius:'8px',background:C.emberD,border:'1px solid rgba(224,92,42,.27)',color:C.ember,fontSize:'.75rem',whiteSpace:'nowrap'}, 'Apri', () => window.open(state.musicUrl,'_blank')));
+}
+extDiv.appendChild(urlRow);
+audioBox.appendChild(extDiv);
+wrap.appendChild(audioBox);
+
+// Summary
+const totalTime = state.selected.length
+? state.series*(state.selected.length*state.workTime+(state.selected.length-1)*state.restTime)+(state.series-1)*state.restBetween
+: 0;
+const sumBox = div({background:C.emberD,border:'1px solid rgba(224,92,42,.2)',borderRadius:'12px',padding:'.85rem',marginBottom:'1rem'});
+sumBox.appendChild(div({fontSize:'.63rem',letterSpacing:'.12em',color:C.ember,textTransform:'uppercase',marginBottom:'.45rem'}, 'Riepilogo'));
+const grid = div({display:'grid',gridTemplateColumns:'1fr 1fr 1fr',textAlign:'center'});
+[[state.series,'Serie'],[state.selected.length,'Esercizi'],[fmt(totalTime),'Durata']].forEach(([v,l]) => {
+const cell = div({});
+cell.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'1.6rem',color:C.ember,lineHeight:'1'}, String(v)));
+cell.appendChild(div({fontSize:'.6rem',color:C.mist,letterSpacing:'.08em',textTransform:'uppercase'}, l));
+grid.appendChild(cell);
+});
+sumBox.appendChild(grid);
+wrap.appendChild(sumBox);
+
+wrap.appendChild(btn({width:'100%',padding:'1.1rem',borderRadius:'12px',background:state.selected.length?C.ember:C.border,border:'none',color:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.4rem',letterSpacing:'.08em'}, '▶ AVVIA WORKOUT', () => {
+if (!state.selected.length) return;
+buildWorkout();
+if (state.musicUrl) window.open(state.musicUrl,'_blank');
+state.tab='player'; render();
+}));
+return wrap;
+}
+
+// ── VIDEO TAB ─────────────────────────────────────────────────────────────────
+function renderVideos() {
+const wrap = div({flex:'1',padding:'1.1rem 1rem',overflowY:'auto'});
+const titleRow = div({display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:'.15rem'});
+const title = div({fontFamily:"'Bebas Neue'",fontSize:'1.8rem',color:C.white,letterSpacing:'.04em'});
+title.innerHTML = 'Video <span style="color:#E05C2A">Allenamenti</span>';
+titleRow.appendChild(title);
+titleRow.appendChild(btn({padding:'.45rem .9rem',borderRadius:'8px',background:'rgba(255,0,0,0.1)',border:'1px solid rgba(255,0,0,0.25)',color:'#FF4444',fontSize:'.75rem',fontWeight:'600'}, '+ Aggiungi', () => { state.showAddVideo=true; state.editingVideoId=null; render(); }));
+wrap.appendChild(titleRow);
+wrap.appendChild(div({fontSize:'.74rem',color:C.mist,marginBottom:'1.2rem'}, 'Tap su un video per aprirlo nell\'app YouTube.'));
+
+if (state.videos.length === 0) {
+const empty = div({textAlign:'center',padding:'3rem 1rem',color:C.mist});
+empty.appendChild(div({fontSize:'2.5rem',marginBottom:'1rem'}, '🎬'));
+empty.appendChild(div({fontSize:'.85rem',marginBottom:'.4rem'}, 'Nessun video salvato'));
+empty.appendChild(div({fontSize:'.74rem'}, 'Aggiungi i tuoi video di allenamento preferiti.'));
+wrap.appendChild(empty);
+} else {
+const list = div({display:'flex',flexDirection:'column',gap:'.65rem'});
+state.videos.forEach((video, idx) => {
+const card = div({background:C.surface,border:'1px solid '+C.border,borderRadius:'12px',overflow:'hidden'});
+const inner = div({display:'flex',alignItems:'center',gap:'.85rem',padding:'.9rem'});
+
+// Icona YT
+const iconWrap = div({
+width:'52px',height:'52px',borderRadius:'10px',background:'rgba(255,0,0,0.1)',
+border:'1px solid rgba(255,0,0,0.2)',display:'flex',alignItems:'center',
+justifyContent:'center',fontSize:'1.6rem',flexShrink:'0',cursor:'pointer'
+}, '▶️');
+iconWrap.onclick = () => window.open(video.url, '_blank');
+inner.appendChild(iconWrap);
+
+const info = div({flex:'1',minWidth:'0',cursor:'pointer'});
+info.onclick = () => window.open(video.url, '_blank');
+info.appendChild(div({fontSize:'.88rem',fontWeight:'600',color:C.white,marginBottom:'.2rem',lineHeight:'1.3'}, video.title));
+info.appendChild(div({fontSize:'.68rem',color:'#FF4444'}, 'YouTube ↗'));
+inner.appendChild(info);
+
+// Azioni
+const actions = div({display:'flex',flexDirection:'column',gap:'.35rem',flexShrink:'0'});
+actions.appendChild(btn({background:'none',border:'none',color:C.mist,fontSize:'.9rem',cursor:'pointer',padding:'.2rem'}, '✏️', () => {
+state.showAddVideo=true; state.editingVideoId=video.id; render();
+}));
+actions.appendChild(btn({background:'none',border:'none',color:'rgba(239,68,68,.6)',fontSize:'.9rem',cursor:'pointer',padding:'.2rem'}, '🗑', () => {
+state.videos = state.videos.filter(v=>v.id!==video.id);
+saveVideos(); render();
+}));
+inner.appendChild(actions);
+card.appendChild(inner);
+list.appendChild(card);
+});
+wrap.appendChild(list);
+}
+return wrap;
+}
+
+// ── WORKOUT LOGIC ─────────────────────────────────────────────────────────────
+let audioEl = null;
+let timerInterval = null;
+
+function buildWorkout() {
+const seq = [];
+for (let s=0; s<state.series; s++) {
+state.selected.forEach((ex,i) => {
+seq.push({type:'work',ex,serie:s+1,dur:state.workTime});
+const last = i===state.selected.length-1;
+if (!last) seq.push({type:'rest',ex:state.selected[i+1],serie:s+1,dur:state.restTime});
+else if (s<state.series-1) seq.push({type:'series-rest',ex:state.selected[0],serie:s+2,dur:state.restBetween});
+});
+}
+seq.push({type:'end'});
+state.workout = seq;
+state.phase = {idx:0,...seq[0],timeLeft:seq[0].dur};
+state.running = false;
+state.done = false;
+}
+
+function startTimer() {
+if (timerInterval) clearInterval(timerInterval);
+timerInterval = setInterval(() => {
+if (!state.running || !state.phase || state.phase.type==='end') return;
+const next = state.phase.timeLeft - 1;
+
+// Countdown 5 bip
+if (next <= 5 && next > 0) {
+const f = state.phase.type==='work' ? 523 : state.phase.type==='series-rest' ? 392 : 440;
+beep(f, 0.12, 0.75);
+}
+
+if (next <= 0) {
+// Bip lungo cambio fase
+const f = state.phase.type==='work' ? 660 : state.phase.type==='series-rest' ? 523 : 440;
+beepLong(f, 1.5, 0.85);
+
+const ni = state.phase.idx + 1;
+if (!state.workout[ni] || state.workout[ni].type==='end') {
+clearInterval(timerInterval);
+state.running = false; state.done = true;
+setTimeout(() => { beep(880,0.3,0.85); setTimeout(()=>beep(1100,0.4,0.85),280); }, 1600);
+} else {
+state.phase = {...state.workout[ni], idx:ni, timeLeft:state.workout[ni].dur};
+}
+} else {
+state.phase.timeLeft = next;
+}
+renderPlayer();
+}, 1000);
+}
+
+// ── PLAYER TAB ────────────────────────────────────────────────────────────────
+function renderPlayer() {
+const app = document.getElementById('app');
+const existing = document.getElementById('player-view');
+const newPlayer = buildPlayerView();
+if (existing) existing.replaceWith(newPlayer);
+else app.appendChild(newPlayer);
+}
+
+function buildPlayerView() {
+const wrap = div({flex:'1',display:'flex',flexDirection:'column'});
+wrap.id = 'player-view';
+
+if (state.done) {
+const done = div({flex:'1',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'2rem',textAlign:'center'});
+done.appendChild(div({fontSize:'4rem',marginBottom:'1rem'}, '🏆'));
+done.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'3rem',color:C.ember,lineHeight:'1'}, 'WORKOUT\nCOMPLETATO'));
+done.appendChild(div({color:C.mist,margin:'1rem 0 2rem',fontSize:'.85rem'}, `${state.series} serie · ${state.selected.length} esercizi`));
+done.appendChild(btn({width:'100%',padding:'1rem',borderRadius:'12px',background:C.ember,border:'none',color:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.2rem',marginBottom:'.8rem'}, '↺ Ripeti', () => { buildWorkout(); state.tab='player'; render(); }));
+done.appendChild(btn({width:'100%',padding:'1rem',borderRadius:'12px',background:C.surface,border:'1px solid '+C.border,color:C.sand,fontSize:'.85rem'}, '← Builder', () => { clearInterval(timerInterval); state.tab='builder'; render(); }));
+wrap.appendChild(done);
+return wrap;
+}
+
+const ph = state.phase;
+if (!ph) return wrap;
+
+const isWork = ph.type==='work';
+const isSRest = ph.type==='series-rest';
+const accent = isWork ? C.ember : C.rest;
+const steps = state.workout.filter(w=>w.type!=='end');
+
+// Progress bar
+const prog = div({padding:'.7rem 1rem',display:'flex',alignItems:'center',gap:'.8rem',borderBottom:'1px solid '+C.border});
+prog.appendChild(btn({background:'none',border:'none',color:C.mist,fontSize:'1.1rem',cursor:'pointer'}, '←', () => { clearInterval(timerInterval); state.running=false; state.tab='builder'; render(); }));
+const progInfo = div({flex:'1'});
+progInfo.appendChild(div({fontSize:'.6rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.22rem'},
+isWork ? `Serie ${ph.serie} · ${ph.ex&&ph.ex.name}` : isSRest ? `Fine serie ${ph.serie-1}` : 'Riposo'));
+const bar = div({height:'3px',background:C.border,borderRadius:'2px'});
+const fill = div({height:'100%',borderRadius:'2px',background:accent,width:Math.round((ph.idx/Math.max(steps.length-1,1))*100)+'%',transition:'width .6s'});
+bar.appendChild(fill);
+progInfo.appendChild(bar);
+prog.appendChild(progInfo);
+prog.appendChild(span({fontSize:'.7rem',color:C.mist}, (ph.idx+1)+'/'+steps.length));
+wrap.appendChild(prog);
+
+// Hero
+if (ph.ex) {
+const mainImg = getExMainImg(ph.ex);
+const hero = div({position:'relative',height:'210px',background:'linear-gradient(135deg,#111,#1E1E1E)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'.5rem',overflow:'hidden'});
+
+if (mainImg) {
+const imgEl = el('img',{});
+imgEl.src = mainImg;
+imgEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:'+(isWork?'0.45':'0.2');
+hero.appendChild(imgEl);
+const grad2 = div({position:'absolute',inset:'0',background:'linear-gradient(to bottom,transparent 30%,rgba(17,17,17,0.95) 100%)'});
+hero.appendChild(grad2);
+} else {
+const svgWrap = div({width:'150px',height:'150px',opacity: isWork ? '0.85' : '0.3', position:'relative', zIndex:'1'});
+if (SVG[ph.ex.id]) svgWrap.innerHTML = SVG[ph.ex.id];
+else svgWrap.textContent = catIcon(ph.ex.cat);
+hero.appendChild(svgWrap);
+}
+
+const badge = div({position:'absolute',top:'.8rem',left:'.8rem',background:accent,color:C.white,fontSize:'.6rem',fontWeight:'700',letterSpacing:'.12em',textTransform:'uppercase',padding:'.2rem .55rem',borderRadius:'2rem',zIndex:'2'}, isWork?'● LAVORO':'◉ RIPOSO');
+hero.appendChild(badge);
+
+const nameBlock = div({position:'absolute',bottom:'.8rem',left:'1rem',right:'1rem',zIndex:'2'});
+const nb = btn({background:'none',border:'none',padding:'0',fontFamily:"'Bebas Neue'",fontSize:'1.6rem',color:isWork?C.white:C.mist,letterSpacing:'.03em',lineHeight:'1',textDecoration:'underline',textDecorationColor:'rgba(255,255,255,.28)',cursor:'pointer',textAlign:'left'},
+isWork ? ph.ex.name : isSRest ? 'Prossima: '+ph.ex.name : 'Prossimo: '+ph.ex.name,
+() => { state.modalEx=ph.ex; render(); });
+nameBlock.appendChild(nb);
+if (isWork && ph.ex.target) nameBlock.appendChild(div({fontSize:'.68rem',color:C.emberL,marginTop:'.18rem'}, ph.ex.target));
+hero.appendChild(nameBlock);
+wrap.appendChild(hero);
+}
+
+// Timer circle
+const timerWrap = div({display:'flex',flexDirection:'column',alignItems:'center',padding:'1.2rem 1rem .7rem'});
+const circ = 2*Math.PI*45;
+const dash = circ*(1-ph.timeLeft/(ph.dur||1));
+
+const svgTimer = document.createElementNS('http://www.w3.org/2000/svg','svg');
+svgTimer.setAttribute('width','140'); svgTimer.setAttribute('height','140');
+svgTimer.style.transform = 'rotate(-90deg)';
+const cBg = document.createElementNS('http://www.w3.org/2000/svg','circle');
+cBg.setAttribute('cx','70'); cBg.setAttribute('cy','70'); cBg.setAttribute('r','45');
+cBg.setAttribute('fill','none'); cBg.setAttribute('stroke',C.border); cBg.setAttribute('stroke-width','6');
+const cFg = document.createElementNS('http://www.w3.org/2000/svg','circle');
+cFg.setAttribute('cx','70'); cFg.setAttribute('cy','70'); cFg.setAttribute('r','45');
+cFg.setAttribute('fill','none'); cFg.setAttribute('stroke',accent); cFg.setAttribute('stroke-width','6');
+cFg.setAttribute('stroke-linecap','round');
+cFg.setAttribute('stroke-dasharray',String(circ));
+cFg.setAttribute('stroke-dashoffset',String(dash));
+cFg.style.transition = 'stroke-dashoffset .9s linear';
+svgTimer.appendChild(cBg); svgTimer.appendChild(cFg);
+
+const timerBox = div({position:'relative',width:'140px',height:'140px'});
+timerBox.appendChild(svgTimer);
+const timerText = div({position:'absolute',inset:'0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'});
+timerText.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'2.6rem',color:ph.timeLeft<=5&&isWork?C.ember:C.white,lineHeight:'1',transition:'color .2s'}, fmt(ph.timeLeft)));
+timerText.appendChild(div({fontSize:'.57rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase'}, isWork?'lavoro':'riposo'));
+timerBox.appendChild(timerText);
+timerWrap.appendChild(timerBox);
+
+if (isWork && ph.ex && ph.ex.cues && ph.ex.cues[0]) {
+timerWrap.appendChild(div({marginTop:'.65rem',padding:'.5rem .85rem',background:C.emberD,borderRadius:'8px',fontSize:'.72rem',color:C.emberL,fontStyle:'italic',textAlign:'center',maxWidth:'320px'}, ph.ex.cues[0]));
+}
+if (!isWork) {
+timerWrap.appendChild(div({marginTop:'.65rem',padding:'.5rem .85rem',background:C.restD,borderRadius:'8px',fontSize:'.72rem',color:C.rest,textAlign:'center',maxWidth:'320px'}, isSRest?'Fine serie. Recupera e preparati.':'Respira. Prossimo esercizio tra poco.'));
+}
+wrap.appendChild(timerWrap);
+
+// Controls
+const ctrl = div({padding:'0 1rem .8rem',display:'flex',gap:'.7rem',marginTop:'auto'});
+ctrl.appendChild(btn({flex:'1',padding:'.9rem',borderRadius:'12px',background:C.surface,border:'1px solid '+C.border,color:C.sand,fontSize:'.82rem'}, '↺', () => {
+clearInterval(timerInterval); state.running=false; state.done=false;
+state.phase={idx:0,...state.workout[0],timeLeft:state.workout[0].dur};
+renderPlayer();
+}));
+const playPause = btn({flex:'3',padding:'.9rem',borderRadius:'12px',background:state.running?C.surface:accent,border:state.running?'1px solid '+C.border:'none',color:state.running?C.sand:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.3rem',letterSpacing:'.06em'},
+state.running?'⏸ PAUSA':'▶ AVVIA', () => {
+state.running = !state.running;
+if (state.running) startTimer();
+else clearInterval(timerInterval);
+renderPlayer();
+});
+ctrl.appendChild(playPause);
+wrap.appendChild(ctrl);
+
+// Mini audio player
+if (state.audioFile) {
+if (!audioEl) { audioEl = el('audio',{loop:true}); document.body.appendChild(audioEl); }
+if (audioEl.src !== state.audioFile.url) { audioEl.src = state.audioFile.url; audioEl.volume = state.audioVol; }
+const mini = div({margin:'0 1rem 1rem',padding:'.6rem .9rem',background:C.surface,border:'1px solid '+C.border,borderRadius:'10px',display:'flex',alignItems:'center',gap:'.7rem'});
+const ap = btn({width:'30px',height:'30px',borderRadius:'50%',background:state.audioPlaying?C.emberD:C.ember,border:'none',color:C.white,fontSize:'.85rem',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:'0'}, state.audioPlaying?'⏸':'▶', () => {
+if (state.audioPlaying) { audioEl.pause(); state.audioPlaying=false; }
+else { audioEl.play().catch(()=>{}); state.audioPlaying=true; }
+renderPlayer();
+});
+mini.appendChild(ap);
+const mn = div({flex:'1',minWidth:'0'});
+mn.appendChild(div({fontSize:'.68rem',color:C.sand,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:'.25rem'}, state.audioFile.name));
+const vs = el('input',{type:'range',min:'0',max:'1',step:'0.05',value:state.audioVol});
+vs.style.accentColor = C.ember; vs.style.width='100%';
+vs.oninput = e => { state.audioVol=Number(e.target.value); if(audioEl) audioEl.volume=state.audioVol; };
+mn.appendChild(vs);
+mini.appendChild(mn);
+wrap.appendChild(mini);
+}
+return wrap;
+}
+
+// ── MAIN RENDER ───────────────────────────────────────────────────────────────
+function render() {
+const app = document.getElementById('app');
+app.innerHTML = '';
+app.style.cssText = 'max-width:480px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column';
+
+const nav = el('nav',{style:{display:'flex',borderBottom:'1px solid '+C.border,background:C.bg,position:'sticky',top:'0',zIndex:'100'}});
+const tabs = [
+['library','📚'],
+['circuits','🔄'],
+['builder', state.selected.length ? `⚙️ ${state.selected.length}` : '⚙️'],
+['videos','🎬'],
+];
+if (state.tab==='player') tabs.push(['player','▶️']);
+tabs.forEach(([v,label]) => {
+const active = state.tab===v;
+nav.appendChild(btn({flex:'1',padding:'.85rem .3rem',background:'none',border:'none',fontSize:'1.1rem',color:active?C.ember:C.mist,borderBottom:active?'2px solid '+C.ember:'2px solid transparent',transition:'color .2s'}, label, () => {
+if (v==='player' && !state.workout) return;
+state.tab=v; render();
+}));
+});
+app.appendChild(nav);
+
+if (state.tab==='library') app.appendChild(renderLibrary());
+else if (state.tab==='circuits') app.appendChild(renderCircuits());
+else if (state.tab==='builder') app.appendChild(renderBuilder());
+else if (state.tab==='videos') app.appendChild(renderVideos());
+else if (state.tab==='player') app.appendChild(buildPlayerView());
+
+const modal = renderModal();
+if (modal) app.appendChild(modal);
+const addModal = renderAddModal();
+if (addModal) app.appendChild(addModal);
+const videoModal = renderAddVideoModal();
+if (videoModal) app.appendChild(videoModal);
+}
+
+render();
+</script>
+</body>
+</html>
