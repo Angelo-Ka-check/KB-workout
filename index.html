@@ -118,7 +118,8 @@ modalEx: null,
 showAdd: false,
 customExs: JSON.parse(localStorage.getItem('kb_custom') || '[]'),
 // builder
-workTime: 40, restTime: 20, series: 3, restBetween: 90,
+workMode: 'time',
+workTime: 40, workReps: 10, restTime: 20, series: 3, restBetween: 90,
 musicUrl: '',
 audioFile: null, audioPlaying: false, audioVol: 0.7,
 // player
@@ -126,6 +127,10 @@ workout: null, phase: null, running: false, done: false,
 // videos
 videos: JSON.parse(localStorage.getItem('kb_videos') || '[]'),
 showAddVideo: false,
+// circuiti
+savedCircuits: JSON.parse(localStorage.getItem('kb_saved_circuits') || '[]'),
+hiddenCircuits: JSON.parse(localStorage.getItem('kb_hidden_circuits') || '[]'),
+showSaveCircuit: false,
 };
 
 // Overrides YouTube links e immagini salvati dall'utente
@@ -136,6 +141,8 @@ function saveYtOverrides() { localStorage.setItem('kb_yt_overrides', JSON.string
 function saveImgOverrides() { localStorage.setItem('kb_img_overrides', JSON.stringify(imgOverrides)); }
 function saveCustom() { localStorage.setItem('kb_custom', JSON.stringify(state.customExs)); }
 function saveVideos() { localStorage.setItem('kb_videos', JSON.stringify(state.videos)); }
+function saveSavedCircuits() { localStorage.setItem('kb_saved_circuits', JSON.stringify(state.savedCircuits)); }
+function saveHiddenCircuits() { localStorage.setItem('kb_hidden_circuits', JSON.stringify(state.hiddenCircuits)); }
 
 function getExYt(ex) {
 return ytOverrides[ex.id] !== undefined ? ytOverrides[ex.id] : (ex.yt || '');
@@ -770,7 +777,13 @@ title.innerHTML = 'Circuiti <span style="color:#E05C2A">Pronti</span>';
 wrap.appendChild(title);
 wrap.appendChild(div({fontSize:'.74rem',color:C.mist,marginBottom:'1.2rem'}, 'Tap su un esercizio per la tecnica. Carica nel builder per personalizzare.'));
 
-CIRCUITS.forEach(circuit => {
+// Combina predefiniti (non nascosti) + salvati
+const allCircuits = [
+...CIRCUITS.filter(c => !state.hiddenCircuits.includes('preset_'+c.id)).map(c => ({...c, _preset:true})),
+...state.savedCircuits.map(c => ({...c, _saved:true}))
+];
+
+allCircuits.forEach(circuit => {
 const card = div({background:C.surface,border:'1px solid '+circuit.color+'33',borderRadius:'14px',overflow:'hidden',marginBottom:'1.2rem'});
 
 const head = div({background:circuit.color+'15',padding:'1rem 1.1rem .8rem',borderBottom:'1px solid '+circuit.color+'22'});
@@ -811,10 +824,17 @@ struct.appendChild(div({fontSize:'.7rem',color:C.mist}, '📋 '+circuit.structur
 if (circuit.note) struct.appendChild(div({fontSize:'.68rem',color:C.warn,fontStyle:'italic',marginTop:'.25rem'}, '⚠️ '+circuit.note));
 card.appendChild(struct);
 
-const loadWrap = div({padding:'0 1.1rem 1rem'});
+const loadWrap = div({padding:'0 1.1rem 1rem',display:'flex',flexDirection:'column',gap:'.5rem'});
 loadWrap.appendChild(btn({width:'100%',padding:'.82rem',borderRadius:'10px',background:circuit.color,border:'none',color:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.1rem',letterSpacing:'.06em'}, 'Carica nel Builder →', () => {
 state.selected = circuit.ids.map(id=>allExercises().find(e=>e.id===id)).filter(Boolean);
+if (circuit.workMode) { state.workMode=circuit.workMode; state.workTime=circuit.workTime||40; state.workReps=circuit.workReps||10; state.restTime=circuit.restTime||20; state.series=circuit.series||3; state.restBetween=circuit.restBetween||90; }
 state.tab='builder'; render();
+}));
+loadWrap.appendChild(btn({width:'100%',padding:'.6rem',borderRadius:'10px',background:'none',border:'1px solid rgba(239,68,68,.3)',color:'#EF4444',fontSize:'.78rem'}, '🗑 Elimina circuito', () => {
+if (!confirm('Eliminare "'+circuit.name+'"?')) return;
+if (circuit._preset) { state.hiddenCircuits.push('preset_'+circuit.id); saveHiddenCircuits(); }
+else { state.savedCircuits = state.savedCircuits.filter(c=>c.id!==circuit.id); saveSavedCircuits(); }
+render();
 }));
 card.appendChild(loadWrap);
 wrap.appendChild(card);
@@ -855,8 +875,47 @@ selBox.appendChild(row);
 selBox.appendChild(btn({marginTop:'.65rem',fontSize:'.73rem',color:C.ember,background:'none',border:'none',cursor:'pointer',padding:'0'}, '+ Aggiungi esercizi', () => { state.tab='library'; render(); }));
 wrap.appendChild(selBox);
 
+// Toggle Time / Reps
+const toggleBox = div({background:C.surface,border:'1px solid '+C.border,borderRadius:'12px',padding:'.85rem',marginBottom:'.65rem',display:'flex',gap:'.5rem'});
+['time','reps'].forEach(mode => {
+const active = state.workMode === mode;
+const b = btn({flex:'1',padding:'.65rem',borderRadius:'8px',background:active?C.ember:'none',border:'1px solid '+(active?C.ember:C.border),color:active?C.white:C.mist,fontSize:'.82rem',fontWeight:'600'}, mode==='time'?'⏱ Tempo':'🔢 Reps', () => { state.workMode=mode; render(); });
+toggleBox.appendChild(b);
+});
+wrap.appendChild(toggleBox);
+
+// Slider/input tempo lavoro O reps
+if (state.workMode === 'time') {
+const box = div({background:C.surface,border:'1px solid '+C.border,borderRadius:'12px',padding:'.85rem',marginBottom:'.65rem'});
+const top = div({display:'flex',justifyContent:'space-between',marginBottom:'.55rem'});
+top.appendChild(span({fontSize:'.8rem',color:C.sand}, 'Tempo lavoro'));
+const valSpan = span({fontFamily:"'Bebas Neue'",fontSize:'1.4rem',color:C.ember,lineHeight:'1'}, state.workTime+'"');
+top.appendChild(valSpan);
+box.appendChild(top);
+const slider = el('input',{type:'range',min:'15',max:'90',step:'5',value:state.workTime});
+slider.style.accentColor = C.ember;
+slider.oninput = e => { state.workTime=Number(e.target.value); valSpan.textContent=state.workTime+'"'; };
+box.appendChild(slider);
+const range = div({display:'flex',justifyContent:'space-between',marginTop:'.18rem'});
+range.appendChild(span({fontSize:'.6rem',color:C.mist}, '15"'));
+range.appendChild(span({fontSize:'.6rem',color:C.mist}, '90"'));
+box.appendChild(range);
+wrap.appendChild(box);
+} else {
+const box = div({background:C.surface,border:'1px solid '+C.border,borderRadius:'12px',padding:'.85rem',marginBottom:'.65rem'});
+const top = div({display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'.55rem'});
+top.appendChild(span({fontSize:'.8rem',color:C.sand}, 'Numero ripetizioni'));
+box.appendChild(top);
+const repsRow = div({display:'flex',alignItems:'center',gap:'.8rem',justifyContent:'center',padding:'.4rem 0'});
+const minusBtn = btn({width:'38px',height:'38px',borderRadius:'50%',background:C.surface2,border:'1px solid '+C.border,color:C.sand,fontSize:'1.3rem',display:'flex',alignItems:'center',justifyContent:'center'}, '−', () => { if(state.workReps>1){state.workReps--; repsVal.textContent=state.workReps;} });
+const repsVal = div({fontFamily:"'Bebas Neue'",fontSize:'2.4rem',color:C.ember,minWidth:'3rem',textAlign:'center'}, String(state.workReps));
+const plusBtn = btn({width:'38px',height:'38px',borderRadius:'50%',background:C.surface2,border:'1px solid '+C.border,color:C.sand,fontSize:'1.3rem',display:'flex',alignItems:'center',justifyContent:'center'}, '+', () => { if(state.workReps<99){state.workReps++; repsVal.textContent=state.workReps;} });
+repsRow.appendChild(minusBtn); repsRow.appendChild(repsVal); repsRow.appendChild(plusBtn);
+box.appendChild(repsRow);
+wrap.appendChild(box);
+}
+
 [
-{label:'Tempo lavoro',key:'workTime',min:15,max:90,step:5,unit:'"',color:C.ember},
 {label:'Riposo tra esercizi',key:'restTime',min:10,max:60,step:5,unit:'"',color:C.rest},
 {label:'Serie',key:'series',min:1,max:6,step:1,unit:'',color:C.green},
 {label:'Riposo tra serie',key:'restBetween',min:30,max:180,step:15,unit:'"',color:C.rest},
@@ -946,13 +1005,14 @@ audioBox.appendChild(extDiv);
 wrap.appendChild(audioBox);
 
 // Summary
-const totalTime = state.selected.length
+const totalTime = state.workMode==='time' && state.selected.length
 ? state.series*(state.selected.length*state.workTime+(state.selected.length-1)*state.restTime)+(state.series-1)*state.restBetween
 : 0;
 const sumBox = div({background:C.emberD,border:'1px solid rgba(224,92,42,.2)',borderRadius:'12px',padding:'.85rem',marginBottom:'1rem'});
 sumBox.appendChild(div({fontSize:'.63rem',letterSpacing:'.12em',color:C.ember,textTransform:'uppercase',marginBottom:'.45rem'}, 'Riepilogo'));
 const grid = div({display:'grid',gridTemplateColumns:'1fr 1fr 1fr',textAlign:'center'});
-[[state.series,'Serie'],[state.selected.length,'Esercizi'],[fmt(totalTime),'Durata']].forEach(([v,l]) => {
+const durLabel = state.workMode==='reps' ? state.workReps+'×' : fmt(totalTime);
+[[state.series,'Serie'],[state.selected.length,'Esercizi'],[durLabel, state.workMode==='reps'?'Reps':'Durata']].forEach(([v,l]) => {
 const cell = div({});
 cell.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'1.6rem',color:C.ember,lineHeight:'1'}, String(v)));
 cell.appendChild(div({fontSize:'.6rem',color:C.mist,letterSpacing:'.08em',textTransform:'uppercase'}, l));
@@ -960,6 +1020,11 @@ grid.appendChild(cell);
 });
 sumBox.appendChild(grid);
 wrap.appendChild(sumBox);
+
+// Salva circuito
+if (state.selected.length > 0) {
+wrap.appendChild(btn({width:'100%',padding:'.8rem',borderRadius:'12px',background:'none',border:'1px solid '+C.border,color:C.mist,fontSize:'.85rem',marginBottom:'.6rem'}, '💾 Salva come circuito', () => { state.showSaveCircuit=true; render(); }));
+}
 
 wrap.appendChild(btn({width:'100%',padding:'1.1rem',borderRadius:'12px',background:state.selected.length?C.ember:C.border,border:'none',color:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.4rem',letterSpacing:'.08em'}, '▶ AVVIA WORKOUT', () => {
 if (!state.selected.length) return;
@@ -1032,9 +1097,10 @@ let timerInterval = null;
 
 function buildWorkout() {
 const seq = [];
+const isReps = state.workMode === 'reps';
 for (let s=0; s<state.series; s++) {
 state.selected.forEach((ex,i) => {
-seq.push({type:'work',ex,serie:s+1,dur:state.workTime});
+seq.push({type:'work',ex,serie:s+1,dur:isReps?0:state.workTime,isReps,reps:state.workReps});
 const last = i===state.selected.length-1;
 if (!last) seq.push({type:'rest',ex:state.selected[i+1],serie:s+1,dur:state.restTime});
 else if (s<state.series-1) seq.push({type:'series-rest',ex:state.selected[0],serie:s+2,dur:state.restBetween});
@@ -1042,7 +1108,7 @@ else if (s<state.series-1) seq.push({type:'series-rest',ex:state.selected[0],ser
 }
 seq.push({type:'end'});
 state.workout = seq;
-state.phase = {idx:0,...seq[0],timeLeft:seq[0].dur};
+state.phase = {idx:0,...seq[0],timeLeft:seq[0].isReps?0:seq[0].dur};
 state.running = false;
 state.done = false;
 }
@@ -1051,6 +1117,7 @@ function startTimer() {
 if (timerInterval) clearInterval(timerInterval);
 timerInterval = setInterval(() => {
 if (!state.running || !state.phase || state.phase.type==='end') return;
+if (state.phase.isReps && state.phase.type==='work') return; // gestito dal bottone Fatto
 const next = state.phase.timeLeft - 1;
 
 // Countdown 5 bip
@@ -1159,11 +1226,37 @@ hero.appendChild(nameBlock);
 wrap.appendChild(hero);
 }
 
-// Timer circle
+// Timer circle o display reps
 const timerWrap = div({display:'flex',flexDirection:'column',alignItems:'center',padding:'1.2rem 1rem .7rem'});
+
+if (isWork && ph.isReps) {
+// Modalità reps: mostra numero e bottone Fatto
+const repsDisplay = div({display:'flex',flexDirection:'column',alignItems:'center',gap:'.6rem'});
+repsDisplay.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'5rem',color:C.ember,lineHeight:'1'}, String(ph.reps)));
+repsDisplay.appendChild(div({fontSize:'.7rem',color:C.mist,letterSpacing:'.12em',textTransform:'uppercase'}, 'ripetizioni'));
+timerWrap.appendChild(repsDisplay);
+if (ph.ex && ph.ex.cues && ph.ex.cues[0]) {
+timerWrap.appendChild(div({marginTop:'.65rem',padding:'.5rem .85rem',background:C.emberD,borderRadius:'8px',fontSize:'.72rem',color:C.emberL,fontStyle:'italic',textAlign:'center',maxWidth:'320px'}, ph.ex.cues[0]));
+}
+// Bottone Fatto
+const doneBtn = btn({marginTop:'1rem',padding:'.9rem 2rem',borderRadius:'12px',background:C.ember,border:'none',color:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.3rem',letterSpacing:'.06em'}, '✓ FATTO', () => {
+beepLong(660, 1.5, 0.85);
+const ni = ph.idx + 1;
+if (!state.workout[ni] || state.workout[ni].type==='end') {
+clearInterval(timerInterval);
+state.running = false; state.done = true;
+setTimeout(() => { beep(880,0.3,0.85); setTimeout(()=>beep(1100,0.4,0.85),280); }, 1600);
+} else {
+state.phase = {...state.workout[ni], idx:ni, timeLeft:state.workout[ni].isReps?0:state.workout[ni].dur};
+startTimer();
+}
+renderPlayer();
+});
+timerWrap.appendChild(doneBtn);
+} else {
+// Modalità timer normale
 const circ = 2*Math.PI*45;
 const dash = circ*(1-ph.timeLeft/(ph.dur||1));
-
 const svgTimer = document.createElementNS('http://www.w3.org/2000/svg','svg');
 svgTimer.setAttribute('width','140'); svgTimer.setAttribute('height','140');
 svgTimer.style.transform = 'rotate(-90deg)';
@@ -1178,7 +1271,6 @@ cFg.setAttribute('stroke-dasharray',String(circ));
 cFg.setAttribute('stroke-dashoffset',String(dash));
 cFg.style.transition = 'stroke-dashoffset .9s linear';
 svgTimer.appendChild(cBg); svgTimer.appendChild(cFg);
-
 const timerBox = div({position:'relative',width:'140px',height:'140px'});
 timerBox.appendChild(svgTimer);
 const timerText = div({position:'absolute',inset:'0',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'});
@@ -1186,12 +1278,12 @@ timerText.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:'2.6rem',color:ph.
 timerText.appendChild(div({fontSize:'.57rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase'}, isWork?'lavoro':'riposo'));
 timerBox.appendChild(timerText);
 timerWrap.appendChild(timerBox);
-
 if (isWork && ph.ex && ph.ex.cues && ph.ex.cues[0]) {
 timerWrap.appendChild(div({marginTop:'.65rem',padding:'.5rem .85rem',background:C.emberD,borderRadius:'8px',fontSize:'.72rem',color:C.emberL,fontStyle:'italic',textAlign:'center',maxWidth:'320px'}, ph.ex.cues[0]));
 }
 if (!isWork) {
 timerWrap.appendChild(div({marginTop:'.65rem',padding:'.5rem .85rem',background:C.restD,borderRadius:'8px',fontSize:'.72rem',color:C.rest,textAlign:'center',maxWidth:'320px'}, isSRest?'Fine serie. Recupera e preparati.':'Respira. Prossimo esercizio tra poco.'));
+}
 }
 wrap.appendChild(timerWrap);
 
@@ -1235,6 +1327,43 @@ wrap.appendChild(mini);
 return wrap;
 }
 
+// ── SALVA CIRCUITO MODAL ──────────────────────────────────────────────────────
+function renderSaveCircuitModal() {
+if (!state.showSaveCircuit) return null;
+let circuitName = "";
+const overlay = div({position:"fixed",inset:"0",background:"rgba(0,0,0,.9)",zIndex:"300",display:"flex",alignItems:"flex-end",animation:"fadeIn .18s ease"});
+overlay.onclick = () => { state.showSaveCircuit=false; render(); };
+const sheet = div({background:C.surface,width:"100%",maxWidth:"480px",margin:"0 auto",borderRadius:"16px 16px 0 0",animation:"slideUp .22s ease",padding:"0 0 2rem"});
+sheet.onclick = e => e.stopPropagation();
+const header = div({display:"flex",alignItems:"center",justifyContent:"space-between",padding:"1rem 1.2rem",borderBottom:"1px solid "+C.border});
+header.appendChild(div({fontFamily:"'Bebas Neue'",fontSize:"1.3rem",color:C.white}, "Salva Circuito"));
+header.appendChild(btn({background:"none",border:"none",color:C.mist,fontSize:"1.1rem"}, "✕", () => { state.showSaveCircuit=false; render(); }));
+sheet.appendChild(header);
+const body = div({padding:"1.2rem"});
+body.appendChild(div({fontSize:".68rem",color:C.mist,letterSpacing:".1em",textTransform:"uppercase",marginBottom:".4rem"}, "Nome circuito *"));
+const inp = el("input",{type:"text",placeholder:"es. Mio Core Training"});
+let okBtn;
+inp.oninput = e => { circuitName=e.target.value; if(okBtn){okBtn.style.background=circuitName.trim().length>1?C.ember:C.border; okBtn.style.cursor=circuitName.trim().length>1?"pointer":"not-allowed";} };
+body.appendChild(inp);
+const preview = state.selected.length+" esercizi · "+state.series+" serie · "+(state.workMode==="reps"?state.workReps+" reps":state.workTime+'"'+" lavoro");
+body.appendChild(div({fontSize:".7rem",color:C.mist,marginTop:".9rem",marginBottom:".4rem"}, preview));
+const btnRow = div({display:"flex",gap:".7rem",marginTop:"1rem"});
+btnRow.appendChild(btn({flex:"1",padding:".9rem",borderRadius:"10px",background:"none",border:"1px solid "+C.border,color:C.mist,fontSize:".85rem"}, "Annulla", () => { state.showSaveCircuit=false; render(); }));
+okBtn = btn({flex:"2",padding:".9rem",borderRadius:"10px",background:C.border,border:"none",color:C.white,fontFamily:"'Bebas Neue'",fontSize:"1.15rem",letterSpacing:".06em"}, "SALVA", () => {
+if (circuitName.trim().length < 2) return;
+const cols = [C.ember,C.purple,"#06B6D4","#10B981","#F59E0B","#EC4899"];
+const col = cols[Math.floor(Math.random()*cols.length)];
+state.savedCircuits.push({id:"s_"+Date.now(),name:circuitName.trim(),subtitle:state.selected.map(e=>e.name).slice(0,3).join(" · ")+(state.selected.length>3?"...":""),tag:"Circuito salvato",color:col,ids:state.selected.map(e=>e.id),structure:state.series+" giri · "+(state.workMode==="reps"?state.workReps+" reps":state.workTime+'"'+" lavoro")+" · "+state.restTime+'"'+" riposo",focus:[state.workMode==="reps"?"Reps":"Timer",state.series+" serie"],workMode:state.workMode,workTime:state.workTime,workReps:state.workReps,restTime:state.restTime,series:state.series,restBetween:state.restBetween,_saved:true});
+saveSavedCircuits();
+state.showSaveCircuit=false; state.tab="circuits"; render();
+});
+btnRow.appendChild(okBtn);
+body.appendChild(btnRow);
+sheet.appendChild(body);
+overlay.appendChild(sheet);
+return overlay;
+}
+
 // ── MAIN RENDER ───────────────────────────────────────────────────────────────
 function render() {
 const app = document.getElementById('app');
@@ -1270,6 +1399,8 @@ const addModal = renderAddModal();
 if (addModal) app.appendChild(addModal);
 const videoModal = renderAddVideoModal();
 if (videoModal) app.appendChild(videoModal);
+const saveCircuitModal = renderSaveCircuitModal();
+if (saveCircuitModal) app.appendChild(saveCircuitModal);
 }
 
 render();
