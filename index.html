@@ -120,6 +120,7 @@ customExs: JSON.parse(localStorage.getItem('kb_custom') || '[]'),
 // builder
 workMode: 'time',
 workTime: 40, workReps: 10, restTime: 20, series: 3, restBetween: 90,
+repsOverride: {},
 musicUrl: '',
 audioFile: null, audioPlaying: false, audioVol: 0.7,
 // player
@@ -881,6 +882,34 @@ else state.selected = state.selected.filter(e=>e.id!==ex.id);
 render();
 }));
 selBox.appendChild(row);
+// Override reps per-esercizio (solo in modalità reps)
+if (state.workMode === 'reps') {
+  const key = ex.slotId || ex.id;
+  const curReps = state.repsOverride[key] !== undefined ? state.repsOverride[key] : state.workReps;
+  const isCustom = state.repsOverride[key] !== undefined;
+  const overRow = div({display:'flex',alignItems:'center',gap:'.4rem',paddingLeft:'1.4rem',paddingBottom:'.3rem'});
+  const mBtn = btn({width:'22px',height:'22px',borderRadius:'50%',background:C.surface2,border:'1px solid '+C.border,color:C.sand,fontSize:'.85rem',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:'1'}, '−', () => {
+    const v = (state.repsOverride[key] !== undefined ? state.repsOverride[key] : state.workReps) - 1;
+    if (v < 1) return;
+    state.repsOverride[key] = v; render();
+  });
+  const rVal = span({fontFamily:"'Bebas Neue'",fontSize:'.95rem',color:isCustom?C.ember:C.mist,minWidth:'2rem',textAlign:'center'}, curReps+'×');
+  const pBtn = btn({width:'22px',height:'22px',borderRadius:'50%',background:C.surface2,border:'1px solid '+C.border,color:C.sand,fontSize:'.85rem',display:'flex',alignItems:'center',justifyContent:'center',lineHeight:'1'}, '+', () => {
+    const v = (state.repsOverride[key] !== undefined ? state.repsOverride[key] : state.workReps) + 1;
+    if (v > 99) return;
+    state.repsOverride[key] = v; render();
+  });
+  overRow.appendChild(mBtn);
+  overRow.appendChild(rVal);
+  overRow.appendChild(pBtn);
+  if (isCustom) {
+    const resetBtn = btn({background:'none',border:'none',color:C.mist,fontSize:'.6rem',cursor:'pointer',padding:'0 .2rem'}, '↩ default', () => {
+      delete state.repsOverride[key]; render();
+    });
+    overRow.appendChild(resetBtn);
+  }
+  selBox.appendChild(overRow);
+}
 });
 }
 selBox.appendChild(btn({marginTop:'.65rem',fontSize:'.73rem',color:C.ember,background:'none',border:'none',cursor:'pointer',padding:'0'}, '+ Aggiungi esercizi', () => { state.tab='library'; render(); }));
@@ -890,7 +919,7 @@ wrap.appendChild(selBox);
 const toggleBox = div({background:C.surface,border:'1px solid '+C.border,borderRadius:'12px',padding:'.85rem',marginBottom:'.65rem',display:'flex',gap:'.5rem'});
 ['time','reps'].forEach(mode => {
 const active = state.workMode === mode;
-const b = btn({flex:'1',padding:'.65rem',borderRadius:'8px',background:active?C.ember:'none',border:'1px solid '+(active?C.ember:C.border),color:active?C.white:C.mist,fontSize:'.82rem',fontWeight:'600'}, mode==='time'?'⏱ Tempo':'🔢 Reps', () => { state.workMode=mode; render(); });
+const b = btn({flex:'1',padding:'.65rem',borderRadius:'8px',background:active?C.ember:'none',border:'1px solid '+(active?C.ember:C.border),color:active?C.white:C.mist,fontSize:'.82rem',fontWeight:'600'}, mode==='time'?'⏱ Tempo':'🔢 Reps', () => { state.workMode=mode; state.repsOverride={}; render(); });
 toggleBox.appendChild(b);
 });
 wrap.appendChild(toggleBox);
@@ -1131,7 +1160,9 @@ const seq = [];
 const isReps = state.workMode === 'reps';
 for (let s=0; s<state.series; s++) {
 state.selected.forEach((ex,i) => {
-seq.push({type:'work',ex,serie:s+1,dur:isReps?0:state.workTime,isReps,reps:state.workReps});
+const exKey = ex.slotId || ex.id;
+const exReps = isReps && state.repsOverride[exKey] !== undefined ? state.repsOverride[exKey] : state.workReps;
+seq.push({type:'work',ex,serie:s+1,dur:isReps?0:state.workTime,isReps,reps:exReps});
 const last = i===state.selected.length-1;
 if (!last) seq.push({type:'rest',ex:state.selected[i+1],serie:s+1,dur:state.restTime});
 else if (s<state.series-1) seq.push({type:'series-rest',ex:state.selected[0],serie:s+2,dur:state.restBetween});
@@ -1335,6 +1366,21 @@ else { clearInterval(timerInterval); releaseWakeLock(); }
 renderPlayer();
 });
 ctrl.appendChild(playPause);
+// Bottone SALTA →
+ctrl.appendChild(btn({flex:'1',padding:'.9rem',borderRadius:'12px',background:C.surface,border:'1px solid '+C.border,color:C.sand,fontSize:'.82rem'}, '→', () => {
+const ni = ph.idx + 1;
+if (!state.workout[ni] || state.workout[ni].type==='end') {
+  clearInterval(timerInterval);
+  state.running = false; state.done = true;
+  releaseWakeLock();
+  setTimeout(() => { beep(880,0.3,0.85); setTimeout(()=>beep(1100,0.4,0.85),280); }, 400);
+} else {
+  beepLong(ph.type==='work'?660:440, 1.0, 0.7);
+  state.phase = {...state.workout[ni], idx:ni, timeLeft:state.workout[ni].isReps?0:state.workout[ni].dur};
+  if (state.running) startTimer();
+}
+renderPlayer();
+}));
 wrap.appendChild(ctrl);
 
 // Mini audio player
