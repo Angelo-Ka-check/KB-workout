@@ -864,6 +864,17 @@ row.appendChild(btn({flex:'1',background:'none',border:'none',padding:'0',fontSi
 if (ex.side) row.appendChild(span({fontSize:'.6rem',color:ex.side==='SX'?C.purple:C.green,border:'1px solid '+(ex.side==='SX'?'rgba(168,85,247,.3)':'rgba(34,197,94,.27)'),padding:'.1rem .4rem',borderRadius:'2rem',fontWeight:'700'}, ex.side));
 if (ex.custom) row.appendChild(span({fontSize:'.58rem',color:C.green,border:'1px solid rgba(34,197,94,0.27)',padding:'.1rem .35rem',borderRadius:'2rem'}, 'custom'));
 const slotKey = ex.slotId || ex.id;
+// Frecce riordino
+const moveUp = btn({background:'none',border:'none',color:i===0?C.border:C.mist,fontSize:'.85rem',cursor:i===0?'default':'pointer',lineHeight:'1',padding:'0 2px'}, '↑', () => {
+  if (i===0) return;
+  const s=[...state.selected]; [s[i-1],s[i]]=[s[i],s[i-1]]; state.selected=s; render();
+});
+const moveDown = btn({background:'none',border:'none',color:i===state.selected.length-1?C.border:C.mist,fontSize:'.85rem',cursor:i===state.selected.length-1?'default':'pointer',lineHeight:'1',padding:'0 2px'}, '↓', () => {
+  if (i===state.selected.length-1) return;
+  const s=[...state.selected]; [s[i],s[i+1]]=[s[i+1],s[i]]; state.selected=s; render();
+});
+row.appendChild(moveUp);
+row.appendChild(moveDown);
 row.appendChild(btn({background:'none',border:'none',color:C.mist,fontSize:'.9rem',cursor:'pointer'}, '✕', () => {
 if (ex.slotId) state.selected = state.selected.filter(e=>e.slotId!==ex.slotId);
 else state.selected = state.selected.filter(e=>e.id!==ex.id);
@@ -1030,6 +1041,7 @@ wrap.appendChild(btn({width:'100%',padding:'1.1rem',borderRadius:'12px',backgrou
 if (!state.selected.length) return;
 buildWorkout();
 if (state.musicUrl) window.open(state.musicUrl,'_blank');
+acquireWakeLock();
 state.tab='player'; render();
 }));
 return wrap;
@@ -1094,6 +1106,25 @@ return wrap;
 // ── WORKOUT LOGIC ─────────────────────────────────────────────────────────────
 let audioEl = null;
 let timerInterval = null;
+let wakeLock = null;
+
+async function acquireWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeLock.addEventListener('release', () => { wakeLock = null; });
+  } catch (e) { /* ignore: permesso negato o non supportato */ }
+}
+
+function releaseWakeLock() {
+  if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && state.running && !state.done) {
+    acquireWakeLock();
+  }
+});
 
 function buildWorkout() {
 const seq = [];
@@ -1135,6 +1166,7 @@ const ni = state.phase.idx + 1;
 if (!state.workout[ni] || state.workout[ni].type==='end') {
 clearInterval(timerInterval);
 state.running = false; state.done = true;
+releaseWakeLock();
 setTimeout(() => { beep(880,0.3,0.85); setTimeout(()=>beep(1100,0.4,0.85),280); }, 1600);
 } else {
 state.phase = {...state.workout[ni], idx:ni, timeLeft:state.workout[ni].dur};
@@ -1180,7 +1212,7 @@ const steps = state.workout.filter(w=>w.type!=='end');
 
 // Progress bar
 const prog = div({padding:'.7rem 1rem',display:'flex',alignItems:'center',gap:'.8rem',borderBottom:'1px solid '+C.border});
-prog.appendChild(btn({background:'none',border:'none',color:C.mist,fontSize:'1.1rem',cursor:'pointer'}, '←', () => { clearInterval(timerInterval); state.running=false; state.tab='builder'; render(); }));
+prog.appendChild(btn({background:'none',border:'none',color:C.mist,fontSize:'1.1rem',cursor:'pointer'}, '←', () => { clearInterval(timerInterval); state.running=false; releaseWakeLock(); state.tab='builder'; render(); }));
 const progInfo = div({flex:'1'});
 const phName = ph.ex ? (ph.ex.side ? ph.ex.name+' — '+ph.ex.side : ph.ex.name) : '';
 progInfo.appendChild(div({fontSize:'.6rem',color:C.mist,letterSpacing:'.1em',textTransform:'uppercase',marginBottom:'.22rem'},
@@ -1245,6 +1277,7 @@ const ni = ph.idx + 1;
 if (!state.workout[ni] || state.workout[ni].type==='end') {
 clearInterval(timerInterval);
 state.running = false; state.done = true;
+releaseWakeLock();
 setTimeout(() => { beep(880,0.3,0.85); setTimeout(()=>beep(1100,0.4,0.85),280); }, 1600);
 } else {
 state.phase = {...state.workout[ni], idx:ni, timeLeft:state.workout[ni].isReps?0:state.workout[ni].dur};
@@ -1297,8 +1330,8 @@ renderPlayer();
 const playPause = btn({flex:'3',padding:'.9rem',borderRadius:'12px',background:state.running?C.surface:accent,border:state.running?'1px solid '+C.border:'none',color:state.running?C.sand:C.white,fontFamily:"'Bebas Neue'",fontSize:'1.3rem',letterSpacing:'.06em'},
 state.running?'⏸ PAUSA':'▶ AVVIA', () => {
 state.running = !state.running;
-if (state.running) startTimer();
-else clearInterval(timerInterval);
+if (state.running) { startTimer(); acquireWakeLock(); }
+else { clearInterval(timerInterval); releaseWakeLock(); }
 renderPlayer();
 });
 ctrl.appendChild(playPause);
